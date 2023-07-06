@@ -6,9 +6,10 @@
 #include <vector>
 #include <onnxruntime_cxx_api.h>
 #include <tensorrt_provider_factory.h>
+#include <tensorrt_provider_options.h>
 
-std::unique_ptr<OrtTensorRTProviderOptions> get_default_trt_provider_options() {
-  auto tensorrt_options = std::make_unique<OrtTensorRTProviderOptions>();
+std::unique_ptr<OrtTensorRTProviderOptionsV2> get_default_trt_provider_options() {
+  auto tensorrt_options = std::make_unique<OrtTensorRTProviderOptionsV2>();
   tensorrt_options->device_id = 0;
   tensorrt_options->has_user_compute_stream = 0;
   tensorrt_options->user_compute_stream = nullptr;
