@@ -282,6 +282,8 @@ void ort_trt_run_with_default_options() {
 
 void run_ort_trt() {
   Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "test");
+  const auto& api = Ort::GetApi();
+  OrtTensorRTProviderOptionsV2* tensorrt_options;
 
   Ort::SessionOptions session_options;
   session_options.SetIntraOpNumThreads(1);
@@ -296,10 +298,14 @@ void run_ort_trt() {
   const char* calib_table = "squeezenet_calibration.flatbuffers";
 #endif
 
-  auto tensorrt_options = get_default_trt_provider_options();
-
-  session_options.AppendExecutionProvider_TensorRT(*tensorrt_options.get());
-  printf("Runing ORT TRT EP with default provider options\n");
+  // auto tensorrt_options = get_default_trt_provider_options();
+  // session_options.AppendExecutionProvider_TensorRT(*tensorrt_options.get());
+  Ort::ThrowOnError(api.CreateTensorRTProviderOptions(&tensorrt_options));
+  std::unique_ptr<OrtTensorRTProviderOptionsV2, decltype(api.ReleaseTensorRTProviderOptions)> rel_trt_options(
+      tensorrt_options, api.ReleaseTensorRTProviderOptions);
+  Ort::ThrowOnError(api.SessionOptionsAppendExecutionProvider_TensorRT_V2(static_cast<OrtSessionOptions*>(session_options),
+                                                                          rel_trt_options.get()));
+  std::cout << "Running ORT TRT EP with default provider options" << std::endl;
 
   Ort::Session session(env, model_path, session_options);
 
@@ -308,34 +314,38 @@ void run_ort_trt() {
   Ort::AllocatorWithDefaultOptions allocator;
 
   // print number of model input nodes
-  size_t num_input_nodes = session.GetInputCount();
-  std::vector<Ort::AllocatedStringPtr> input_node_names_ptr;
-  std::vector<const char*> input_node_names(num_input_nodes);
+  const size_t num_input_nodes = session.GetInputCount();
+  std::vector<Ort::AllocatedStringPtr> input_names_ptr;
+  std::vector<const char*> input_node_names;
+  input_names_ptr.reserve(num_input_nodes);
+  input_node_names.reserve(num_input_nodes);
   std::vector<int64_t> input_node_dims;  // simplify... this model has only 1 input node {1, 3, 224, 224}.
                                          // Otherwise need vector<vector<>>
 
-  printf("Number of inputs = %zu\n", num_input_nodes);
+  std::cout << "Number of inputs = " << num_input_nodes << std::endl;
 
   // iterate over all input nodes
-  for (int i = 0; i < num_input_nodes; i++) {
+  for (size_t i = 0; i < num_input_nodes; i++) {
     // print input node names
     auto input_name = session.GetInputNameAllocated(i, allocator);
-    printf("Input %d : name=%s\n", i, input_name.get());
-    input_node_names[i] = input_name.get();
-    input_node_names_ptr.push_back(std::move(input_name));
+    std::cout << "Input " << i << " : name =" << input_name.get() << std::endl;
+    input_node_names.push_back(input_name.get());
+    input_names_ptr.push_back(std::move(input_name));
 
     // print input node types
-    Ort::TypeInfo type_info = session.GetInputTypeInfo(i);
+    auto type_info = session.GetInputTypeInfo(i);
     auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
 
     ONNXTensorElementDataType type = tensor_info.GetElementType();
-    printf("Input %d : type=%d\n", i, type);
+    std::cout << "Input " << i << " : type = " << type << std::endl;
 
     // print input shapes/dims
     input_node_dims = tensor_info.GetShape();
-    printf("Input %d : num_dims=%zu\n", i, input_node_dims.size());
-    for (int j = 0; j < input_node_dims.size(); j++)
-      printf("Input %d : dim %d=%jd\n", i, j, input_node_dims[j]);
+    std::cout << "Input " << i << " : num_dims = " << input_node_dims.size() << '\n';
+    for (size_t j = 0; j < input_node_dims.size(); j++) {
+      std::cout << "Input " << i << " : dim[" << j << "] =" << input_node_dims[j] << '\n';
+    }
+    std::cout << std::flush;
   }
 
   size_t input_tensor_size = 224 * 224 * 3;  // simplify ... using known dim values to calculate size
