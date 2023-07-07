@@ -7,8 +7,8 @@
 #include <onnxruntime_cxx_api.h>
 #include <tensorrt_provider_factory.h>
 
-std::unique_ptr<OrtTensorRTProviderOptions> get_default_trt_provider_options() {
-  auto tensorrt_options = std::make_unique<OrtTensorRTProviderOptions>();
+std::unique_ptr<OrtTensorRTProviderOptionsV2> get_default_trt_provider_options() {
+  auto tensorrt_options = std::make_unique<OrtTensorRTProviderOptionsV2>();
   tensorrt_options->device_id = 0;
   tensorrt_options->has_user_compute_stream = 0;
   tensorrt_options->user_compute_stream = nullptr;
@@ -27,13 +27,14 @@ std::unique_ptr<OrtTensorRTProviderOptions> get_default_trt_provider_options() {
   tensorrt_options->trt_engine_decryption_enable = false;
   tensorrt_options->trt_engine_decryption_lib_path = "";
   tensorrt_options->trt_force_sequential_engine_build = false;
-  tensorrt_options->trt_context_memory_sharing_enable = false;
-  tensorrt_options->trt_layer_norm_fp32_fallback = false;
+
   return tensorrt_options;
 }
 
 void run_ort_trt2() {
   Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "test");
+  const auto& api = Ort::GetApi();
+  OrtTensorRTProviderOptionsV2* tensorrt_options;
 
   Ort::SessionOptions session_options;
   session_options.SetIntraOpNumThreads(1);
@@ -42,22 +43,15 @@ void run_ort_trt2() {
 
 #ifdef _WIN32
   const wchar_t* model_path = L"squeezenet.onnx";
-  const wchar_t* calib_table = L"squeezenet_calibration.flatbuffers";
 #else
   const char* model_path = "squeezenet.onnx";
-  const char* calib_table = "squeezenet_calibration.flatbuffers";
 #endif
 
-  auto tensorrt_options = get_default_trt_provider_options();
+  api.CreateTensorRTProviderOptions(&tensorrt_options);
+  std::unique_ptr<OrtTensorRTProviderOptionsV2, decltype(api.ReleaseTensorRTProviderOptions)> rel_trt_options(tensorrt_options, api.ReleaseTensorRTProviderOptions);
+  api.SessionOptionsAppendExecutionProvider_TensorRT_V2(static_cast<OrtSessionOptions*>(session_options), rel_trt_options.get());
 
-  tensorrt_options->trt_engine_cache_enable = true;
-  tensorrt_options->trt_int8_enable = true;
-  tensorrt_options->trt_fp16_enable = true;
-  tensorrt_options->trt_int8_calibration_table_name = calib_table;
-
-  session_options.AppendExecutionProvider_TensorRT(*tensorrt_options.get());
-  printf("Runing ORT TRT EP with:\n\tengine cache enabled\n\tfp16 enabled if supports\n\tint8 enabled if supports\n\tint8 calibration table provided\n");
-  printf("First run ...\n");
+  printf("Runing ORT TRT EP with default provider options\n");
 
   Ort::Session session(env, model_path, session_options);
 
@@ -67,7 +61,6 @@ void run_ort_trt2() {
 
   // print number of model input nodes
   size_t num_input_nodes = session.GetInputCount();
-  std::vector<Ort::AllocatedStringPtr> input_node_names_ptr;
   std::vector<const char*> input_node_names(num_input_nodes);
   std::vector<int64_t> input_node_dims;  // simplify... this model has only 1 input node {1, 3, 224, 224}.
                                          // Otherwise need vector<vector<>>
@@ -77,10 +70,9 @@ void run_ort_trt2() {
   // iterate over all input nodes
   for (int i = 0; i < num_input_nodes; i++) {
     // print input node names
-    auto input_name = session.GetInputNameAllocated(i, allocator);
-    printf("Input %d : name=%s\n", i, input_name.get());
-    input_node_names[i] = input_name.get();
-    input_node_names_ptr.push_back(std::move(input_name));
+    char* input_name = session.GetInputName(i, allocator);
+    printf("Input %d : name=%s\n", i, input_name);
+    input_node_names[i] = input_name;
 
     // print input node types
     Ort::TypeInfo type_info = session.GetInputTypeInfo(i);
@@ -283,6 +275,8 @@ void ort_trt_run_with_default_options() {
 
 void run_ort_trt() {
   Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "test");
+  const auto& api = Ort::GetApi();
+  OrtTensorRTProviderOptionsV2* tensorrt_options;
 
   Ort::SessionOptions session_options;
   session_options.SetIntraOpNumThreads(1);
@@ -297,9 +291,10 @@ void run_ort_trt() {
   const char* calib_table = "squeezenet_calibration.flatbuffers";
 #endif
 
-  auto tensorrt_options = get_default_trt_provider_options();
+  api.CreateTensorRTProviderOptions(&tensorrt_options);
+  std::unique_ptr<OrtTensorRTProviderOptionsV2, decltype(api.ReleaseTensorRTProviderOptions)> rel_trt_options(tensorrt_options, api.ReleaseTensorRTProviderOptions);
+  api.SessionOptionsAppendExecutionProvider_TensorRT_V2(static_cast<OrtSessionOptions*>(session_options), rel_trt_options.get());
 
-  session_options.AppendExecutionProvider_TensorRT(*tensorrt_options.get());
   printf("Runing ORT TRT EP with default provider options\n");
 
   Ort::Session session(env, model_path, session_options);
@@ -310,7 +305,6 @@ void run_ort_trt() {
 
   // print number of model input nodes
   size_t num_input_nodes = session.GetInputCount();
-  std::vector<Ort::AllocatedStringPtr> input_node_names_ptr;
   std::vector<const char*> input_node_names(num_input_nodes);
   std::vector<int64_t> input_node_dims;  // simplify... this model has only 1 input node {1, 3, 224, 224}.
                                          // Otherwise need vector<vector<>>
@@ -320,10 +314,9 @@ void run_ort_trt() {
   // iterate over all input nodes
   for (int i = 0; i < num_input_nodes; i++) {
     // print input node names
-    auto input_name = session.GetInputNameAllocated(i, allocator);
-    printf("Input %d : name=%s\n", i, input_name.get());
-    input_node_names[i] = input_name.get();
-    input_node_names_ptr.push_back(std::move(input_name));
+    char* input_name = session.GetInputName(i, allocator);
+    printf("Input %d : name=%s\n", i, input_name);
+    input_node_names[i] = input_name;
 
     // print input node types
     Ort::TypeInfo type_info = session.GetInputTypeInfo(i);
