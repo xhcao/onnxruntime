@@ -14,7 +14,7 @@ s) ORT_SOURCE=${OPTARG};;
 esac
 done
 
-ONNX_MODEL_URL="https://github.com/onnx/models/raw/master/vision/classification/squeezenet/model/squeezenet1.0-7.onnx"
+ONNX_MODEL_URL="https://media.githubusercontent.com/media/onnx/models/main/vision/classification/squeezenet/model/squeezenet1.0-7.onnx"
 ONNX_MODEL="squeezenet.onnx"
 ASAN_OPTIONS="protect_shadow_gap=0:log_path=asan.log"
 
