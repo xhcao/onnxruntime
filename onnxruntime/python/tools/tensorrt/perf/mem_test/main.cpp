@@ -42,11 +42,7 @@ void run_ort_trt2() {
 
   session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
 
-#ifdef _WIN32
-  const wchar_t* model_path = L"squeezenet.onnx";
-#else
   const char* model_path = "squeezenet.onnx";
-#endif
 
   api.CreateTensorRTProviderOptions(&tensorrt_options);
   std::unique_ptr<OrtTensorRTProviderOptionsV2, decltype(api.ReleaseTensorRTProviderOptions)> rel_trt_options(tensorrt_options, api.ReleaseTensorRTProviderOptions);
@@ -171,11 +167,7 @@ void ort_trt_run_with_default_options() {
   // create session and load model into memory
   // using squeezenet version 1.3
   // URL = https://github.com/onnx/models/tree/master/squeezenet
-#ifdef _WIN32
-  const wchar_t* model_path = L"squeezenet.onnx";
-#else
   const char* model_path = "squeezenet.onnx";
-#endif
 
   printf("Using Onnxruntime C++ API\n");
   Ort::Session session(env, model_path, session_options);
@@ -284,11 +276,7 @@ void run_ort_trt() {
 
   session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
 
-#ifdef _WIN32
-  const wchar_t* model_path = L"squeezenet.onnx";
-#else
   const char* model_path = "squeezenet.onnx";
-#endif
 
   api.CreateTensorRTProviderOptions(&tensorrt_options);
   std::unique_ptr<OrtTensorRTProviderOptionsV2, decltype(api.ReleaseTensorRTProviderOptions)> rel_trt_options(tensorrt_options, api.ReleaseTensorRTProviderOptions);
