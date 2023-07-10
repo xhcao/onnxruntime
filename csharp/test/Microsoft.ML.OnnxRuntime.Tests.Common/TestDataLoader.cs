@@ -461,7 +461,9 @@ namespace Microsoft.ML.OnnxRuntime.Tests
                                 var element = LoadOrValueTensorPb(tensor, sequence.Name, elemMeta);
                                 sequenceOfTensors.Add(element);
                             }
-                            return OrtValue.CreateSequence(sequenceOfTensors);
+                            var result = OrtValue.CreateSequence(sequenceOfTensors);
+                            sequenceOfTensors.Clear();
+                            return result;
                         }
                     }
                 case Onnx.SequenceProto.Types.DataType.Sequence: // Sequence of sequences
@@ -475,7 +477,9 @@ namespace Microsoft.ML.OnnxRuntime.Tests
                                 var ortValue = CreateOrtValueFromSequence(s, elemName, elemMeta);
                                 seqOfSequences.Add(ortValue);
                             }
-                            return OrtValue.CreateSequence(seqOfSequences);
+                            var result = OrtValue.CreateSequence(seqOfSequences);
+                            seqOfSequences.Clear();
+                            return result;
                         }
                     }
                 case Onnx.SequenceProto.Types.DataType.Map:
@@ -494,7 +498,9 @@ namespace Microsoft.ML.OnnxRuntime.Tests
                                 var ortValue = CreateOrtValueFromOptional(opt, elemName, elemMeta);
                                 seqOfSequences.Add(ortValue);
                             }
-                            return OrtValue.CreateSequence(seqOfSequences);
+                            var result = OrtValue.CreateSequence(seqOfSequences);
+                            seqOfSequences.Clear();
+                            return result;
                         }
                     }
                 default:
