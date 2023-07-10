@@ -50,7 +50,7 @@
                 if (outputRunTimes)
                 {
                     lines.Add("\nRun times (ms):");
-                    lines.Add(string.Join(",", _runTimes.Select(x => x.ToString("F2"))));
+                    lines.Add(string.Join(", ", _runTimes.Select(x => x.ToString("F2"))));
                 }
             }
 

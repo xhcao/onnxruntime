@@ -139,7 +139,7 @@ public partial class MainPage : ContentPage
         var createResults = () =>
         {
             var stats = _inferenceSession.PerfStats;
-            var label = new Label();
+            var label = new Label { TextColor = Colors.GhostWhite };
 
             label.Text = $"Model load time: {stats.LoadTime.TotalMilliseconds:F4} ms\n";
             label.Text += $"Warmup run time: {stats.WarmupTime.TotalMilliseconds:F4} ms\n\n";

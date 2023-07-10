@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="MauiModelTester.MainPage">
+             x:Class="MauiModelTester.MainPage" BackgroundColor="Black">
 
-    <ScrollView BackgroundColor="Black" x:Name="MainScrollView" Margin="10">
+    <ScrollView x:Name="MainScrollView" Margin="10">
         <Grid RowSpacing="10" ColumnSpacing="0">
 
             <Grid.RowDefinitions>
@@ -30,11 +30,14 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Text="Execution Provider" 
+                       TextColor="White" VerticalOptions="Center"/>
+                <Picker Grid.Row="0" Grid.Column="1" x:Name="ExecutionProviderOptions" 
+                        TextColor="White" Margin="5,5,5,5"/>
                 
-                <Label Grid.Row="0" Grid.Column="0" Text="Execution Provider" HorizontalOptions="Center"/>
-                <Picker Grid.Row="0" Grid.Column="1" x:Name="ExecutionProviderOptions" Margin="5,5,5,5"/>
-                <Label Grid.Row="1" Grid.Column="0" Text="Iterations" />
-                <Entry Grid.Row="1" Grid.Column="1" x:Name="Iterations" Text="10" />
+                <Label Grid.Row="1" Grid.Column="0" Text="Iterations" TextColor="White" VerticalOptions="Center"/>
+                <Entry Grid.Row="1" Grid.Column="1" x:Name="Iterations" Text="10" TextColor="White"/>
             </Grid>
 
             <ActivityIndicator Grid.Row="2" x:Name="BusyIndicator" IsRunning="False" Color="Orange" />
@@ -48,11 +51,11 @@
                     Clicked="OnRunClicked"
                     HorizontalOptions="Center" />
 
-            <Label Grid.Row="3" Text="Performance test results" FontAttributes="Bold" />
+            <Label Grid.Row="3" Text="Performance test results" TextColor="White" FontAttributes="Bold" />
             
             <ScrollView Grid.Row="4" x:Name="TestResultsView" Margin="10">
                 <StackLayout x:Name="TestResults">
-                    <Label Text="Results will be displayed after the model is run." />
+                    <Label Text="Results will be displayed after the model is run." TextColor="GhostWhite" />
                 </StackLayout>
             </ScrollView>
 
