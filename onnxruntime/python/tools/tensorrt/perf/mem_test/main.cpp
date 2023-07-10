@@ -252,6 +252,5 @@ void run_ort_trt() {
 
 int main(int argc, char* argv[]) {
   run_ort_trt();
-  run_ort_trt2();
   return 0;
 }
