@@ -42,6 +42,8 @@ namespace MauiModelTester
 
             // enable pre/post processing custom operators from onnxruntime-extensions
             _sessionOptions.RegisterOrtExtensions();
+
+            _perfStats = new PerfStats();
         }
 
         // async task to create the inference session which is an expensive operation.
@@ -51,35 +53,73 @@ namespace MauiModelTester
             // the InferenceSession supports multiple calls to Run, including concurrent calls.
             var modelBytes = await Utils.LoadResource("test_data/model.onnx");
 
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
             _inferenceSession = new InferenceSession(modelBytes, _sessionOptions);
+            stopwatch.Stop();
+            _perfStats.LoadTime = stopwatch.Elapsed;
 
-            // read test data and model metadata
-            foreach (var entry in _inferenceSession.InputMetadata)
+            (_inputs, _expectedOutputs) = await Utils.LoadTestData();
+
+            // warmup
+            Run(1, true);
+        }
+
+        public void Run(int iterations = 1, bool isWarmup = false)
+        {
+            // do all setup outside of the timing
+            var runOptions = new RunOptions();
+            var outputNames = _inferenceSession.OutputNames;
+
+            _perfStats.ClearRunTimes();
+
+            // var stopwatch = new Stopwatch();
+
+            for (var i = 0; i < iterations; i++)
             {
+                // stopwatch.Restart();
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
+
+                using IDisposableReadOnlyCollection<OrtValue> results =
+                    _inferenceSession.Run(runOptions, _inputs, outputNames);
+
+                stopwatch.Stop();
+
+                if (isWarmup)
+                {
+                    _perfStats.WarmupTime = stopwatch.Elapsed;
+
+                    // TODO: validate the output if there's expected output and validation is enabled
+                    // If we're doing a perf test we don't need to do validation. We could possibly do a warmup request
+                    // in Create and validate there so it's clearly a one-off.
+                    if (_expectedOutputs.Count > 0)
+                    {
+                        // create dictionary of output name to results
+                        var actual = outputNames.Zip(results).ToDictionary(x => x.First, x => x.Second);
+
+                        foreach (var expectedOutput in _expectedOutputs)
+                        {
+                            var outputName = expectedOutput.Key;
+                            Utils.TensorComparer.VerifyTensorResults(outputName, expectedOutput.Value,
+                                                                     actual[outputName]);
+                        }
+                    }
+                }
+                else
+                {
+                    _perfStats.AddRunTime(stopwatch.Elapsed);
+                }
             }
         }
 
-        public byte[] Run(byte[] jpgOrPngBytes)
-        {
-            // wrap the image bytes in a tensor
-            var tensor = new DenseTensor<byte>(new Memory<byte>(jpgOrPngBytes), new[] { jpgOrPngBytes.Length });
-
-            // create model input. the input name 'image' is defined in the model
-            var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("image", tensor) };
-
-            // Run inference
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-            using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = _inferenceSession.Run(inputs);
-            stopwatch.Stop();
-
-            var output = results.First().AsEnumerable<byte>().ToArray();
-
-            return output;
-        }
+        public PerfStats PerfStats => _perfStats;
 
         private SessionOptions _sessionOptions;
         private InferenceSession _inferenceSession;
         private ExecutionProviders _executionProvider = ExecutionProviders.CPU;
+        private Dictionary<string, OrtValue> _inputs;
+        private Dictionary<string, OrtValue> _expectedOutputs;
+        private PerfStats _perfStats;
     }
 }

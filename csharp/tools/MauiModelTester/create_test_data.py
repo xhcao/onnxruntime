@@ -1,45 +1,148 @@
-import onnxruntime
-import os
+import argparse
 import numpy as np
+import os
+import shutil
 import sys
 
 from pathlib import Path
+from typing import List, Dict
 
 # set to the directory the ONNX Runtime repo is in
 # `git checkout https://github.com/microsoft/onnxruntime.git` if needed.
-ORT_ROOT_DIR = Path(r'D:\src\github\ort')
+ORT_ROOT_DIR = Path(__file__).parents[3]
+SOLUTION_DIR = Path(__file__).parent
+
+# add path for test data/dir generation utils
 sys.path.append(str(ORT_ROOT_DIR / 'tools' / 'python'))
-import ort_test_dir_utils as utils  # noqa
 
-# See https://github.com/microsoft/onnxruntime/blob/main/tools/python/PythonTools.md#creating-a-test-directory-for-a-model
-# for info on providing specific input or expected output
-# Copy your model to the Resources\Raw directory and rename to model.onnx
-RAW_RESOURCE_DIR = Path(r'Resources\Raw')
-MODEL_PATH = Path(r'D:\src\github\ort\onnxruntime\test\testdata\mnist.onnx')
-OUTPUT_PATH = RAW_RESOURCE_DIR
-TEST_NAME = 'test_data'
-# Generate input and optionally output data for your model.
 
-# when using the default data generation any symbolic dimension values must be provided
-# check the model inputs/outputs using Netron and provide a value for any symbolic dimension name
-symbolic_vals = {'batch': 1}  # symbolic dim named 'batch' will have data created using value of 1
+def parse_args():
+    pass
+    parser = argparse.ArgumentParser(
+        description="""Setup the model and test data for usage with the MAUI model tester app.
+        Input data will be randomly generated as needed. 
+        The model will be run locally with this and the output saved as expected output. 
+        Explicit input data or expected output data can be specified by providing .pb files with the input/output name 
+        and tensor. These can be created with /tools/python/onnx_test_data_utils.py.
+        
+        See See https://github.com/microsoft/onnxruntime/blob/main/tools/python/PythonTools.md#creating-a-test-directory-for-a-model  # noqa
+        for info on providing specific input or expected output""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
 
-# we can also explicitly provide input/expected output.
-# As the test model expects normalized float values in the range 0..1 we create the input explicitly as the default
-# data generation uses a range of -10..10
-inputs = {'Input3': np.random.rand(1, 1, 28, 28).astype(np.float32)}
+    parser.add_argument("--symbolic_dims", "-s",
+                        help="Symbolic dimension values if the model inputs have symbolic dimensions and the input "
+                             "data is being generated. Format is `name=value {name2=value2 ...}.",
+                        type=str,
+                        nargs="+",
+                        required=False
+    )
 
-utils.create_test_dir(str(MODEL_PATH),
-                      str(OUTPUT_PATH),
-                      TEST_NAME,
-                      # Explicit input data. Any missing required inputs will have data generated for them.
-                      name_input_map=inputs,
-                      # Optional map for any symbolic values.
-                      symbolic_dim_values_map=symbolic_vals,
-                      # Expected output can be provided if you want to validate model output against this.
-                      name_output_map=None)
+    parser.add_argument("--input_data", "-i",
+                        help="Input data pb files created with onnx_test_data_utils.py. Multiple can be specified.",
+                        type=Path,
+                        nargs="+",
+                        required=False
+    )
 
-# rename the copied model
-copied_model = OUTPUT_PATH / TEST_NAME / MODEL_PATH.name
-renamed_model = OUTPUT_PATH / TEST_NAME / "model.onnx"
-os.rename(str(copied_model), str(renamed_model))
+    parser.add_argument("--output_data", "-o",
+                        help="Expected output data pb files created with onnx_test_data_utils.py. "
+                             "Multiple can be specified.",
+                        type=Path,
+                        nargs="+",
+                        required=False
+    )
+
+    parser.add_argument("--model_path", "-m",
+                        help="Path to ONNX model to use. Model will be copied into the test app",
+                        type=Path)
+
+    args = parser.parse_args()
+
+    args.model_path.resolve(strict=True)
+
+    # convert symbolic dims to dictionary
+
+    symbolic_dims = None
+    if args.symbolic_dims:
+        symbolic_dims = {}
+        for value in args.symbolic_dims:
+            pieces = value.split('=')
+            assert(len(pieces) == 2)
+            name = pieces[0].strip()
+            value = int(pieces[1].strip())
+            symbolic_dims[name] = value
+
+    args.symbolic_dims = symbolic_dims
+
+    return args
+
+
+def create_existing_data_map(pb_files: List[Path]):
+    import onnx_test_data_utils as data_utils
+
+    data_map = {}
+    for file in pb_files:
+        file.resolve(strict=True)
+        name, data = data_utils.read_tensorproto_pb_file(str(file))
+        data_map[name] = data
+
+    return data_map
+
+
+def add_model_and_test_data_to_app(model_path: Path,
+                  symbolic_dims: Dict[str, int] = None,
+                  input_map: Dict[str, np.ndarray] = None,
+                  output_map: Dict[str, np.ndarray] = None):
+    import ort_test_dir_utils as utils  # noqa
+
+    output_path = SOLUTION_DIR / 'Resources' / 'Raw'
+    test_name = 'test_data'
+
+    test_path = output_path / test_name
+    # remove existing data
+    if test_path.exists():
+        shutil.rmtree(test_path)
+
+    # If you want to directly create input data without using onnx_test_data_utils you can edit the input map here
+    # if not input_map:
+    #     input_map = {}
+    #
+    # input_map['Input3'] = np.random.rand(1, 1, 28, 28).astype(np.float32)
+
+    utils.create_test_dir(str(model_path), str(output_path), test_name,
+                          # Explicit input data. Any missing required inputs will have data generated for them.
+                          name_input_map=input_map,
+                          # Optional map for any symbolic values.
+                          symbolic_dim_values_map=symbolic_dims,
+                          # Expected output can be provided if you want to validate model output against this.
+                          name_output_map=output_map)
+
+    # create_test_dir will copy the model to the output directory.
+    # rename the copied model to the generic name the app expects.
+    copied_model = output_path / test_name / model_path.name
+    renamed_model = output_path / test_name / "model.onnx"
+    os.rename(str(copied_model), str(renamed_model))
+
+    # add a text file with the original model path just so there's some info on where it came from
+    with open(test_path / 'model_info.txt', 'w') as model_info_file:
+        model_info_file.write(str(model_path))
+
+
+def create_test_data():
+    args = parse_args()
+
+    input_map = None
+    output_map = None
+
+    if args.input_data:
+        input_map = create_existing_data_map(args.input_data)
+
+    if args.output_data:
+        output_map = create_existing_data_map(args.output_data)
+
+    add_model_and_test_data_to_app(args.model_path, args.symbolic_dims, input_map, output_map)
+
+
+if __name__ == '__main__':
+    create_test_data()

@@ -3,39 +3,60 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MauiModelTester.MainPage">
 
-    <ScrollView>
-        <VerticalStackLayout
-            Spacing="25"
-            Padding="30,0"
-            VerticalOptions="Center">
+    <ScrollView BackgroundColor="Black" x:Name="MainScrollView" Margin="10">
+        <Grid RowSpacing="10" ColumnSpacing="0">
 
-            <Image
-                Source="dotnet_bot.png"
-                SemanticProperties.Description="Cute dot net bot waving hi to you!"
-                HeightRequest="200"
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Label Grid.Row="0"
+                Text="ONNX Runtime Mobile Model Tester"
+                FontSize="Header"
+                TextColor="DeepSkyBlue"
                 HorizontalOptions="Center" />
 
-            <Label
-                Text="Hello, World!"
-                SemanticProperties.HeadingLevel="Level1"
-                FontSize="32"
-                HorizontalOptions="Center" />
+            <Grid Grid.Row="1" ColumnSpacing="10">
+                <!-- Run params. EP and iterations currently-->
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"  />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                
+                <Label Grid.Row="0" Grid.Column="0" Text="Execution Provider" HorizontalOptions="Center"/>
+                <Picker Grid.Row="0" Grid.Column="1" x:Name="ExecutionProviderOptions" Margin="5,5,5,5"/>
+                <Label Grid.Row="1" Grid.Column="0" Text="Iterations" />
+                <Entry Grid.Row="1" Grid.Column="1" x:Name="Iterations" Text="10" />
+            </Grid>
 
-            <Label
-                Text="Welcome to .NET Multi-platform App UI"
-                SemanticProperties.HeadingLevel="Level2"
-                SemanticProperties.Description="Welcome to dot net Multi platform App U I"
-                FontSize="18"
-                HorizontalOptions="Center" />
+            <ActivityIndicator Grid.Row="2" x:Name="BusyIndicator" IsRunning="False" Color="Orange" />
 
-            <Button
-                x:Name="CounterBtn"
-                Text="Click me"
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnCounterClicked"
-                HorizontalOptions="Center" />
+            <Button Grid.Row="2" 
+                    x:Name="RunButton" Text="Run"
+                    FontSize="Large"
+                    TextColor="White"
+                    BackgroundColor="DeepSkyBlue"
+                    SemanticProperties.Hint="Runs the model the requested number of times."
+                    Clicked="OnRunClicked"
+                    HorizontalOptions="Center" />
 
-        </VerticalStackLayout>
+            <Label Grid.Row="3" Text="Performance test results" FontAttributes="Bold" />
+            
+            <ScrollView Grid.Row="4" x:Name="TestResultsView" Margin="10">
+                <StackLayout x:Name="TestResults">
+                    <Label Text="Results will be displayed after the model is run." />
+                </StackLayout>
+            </ScrollView>
+
+        </Grid>
     </ScrollView>
 
 </ContentPage>
