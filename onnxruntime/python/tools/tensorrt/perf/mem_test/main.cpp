@@ -3,6 +3,7 @@
 //
 
 #include <assert.h>
+#include <iostream>
 #include <vector>
 #include <onnxruntime_cxx_api.h>
 #include <tensorrt_provider_factory.h>
