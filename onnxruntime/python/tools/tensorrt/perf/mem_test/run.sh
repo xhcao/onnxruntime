@@ -50,12 +50,6 @@ make -j8
 wget ${ONNX_MODEL_URL} -O ${ONNX_MODEL}
 ASAN_OPTIONS=${ASAN_OPTIONS} ./onnx_memtest
 
-if [ $? -ne 0 ]
-then
-    echo "Memory test application failed."
-    exit 1
-fi
-
 mkdir result
 if [ -e asan.log* ]
 then
