@@ -1,4 +1,6 @@
-﻿namespace MauiModelTester;
+﻿using Microsoft.ML.OnnxRuntime;
+
+namespace MauiModelTester;
 
 public partial class MainPage : ContentPage
 {
@@ -110,12 +112,6 @@ public partial class MainPage : ContentPage
         // create inference session if it doesn't exist or EP has changed
         await CreateInferenceSession();
 
-        // In theory running on the main thread should have consistent perf but it doesn't seem to. Possibly the main
-        // thread is cycling through a number of tasks.
-        // await MainThread.InvokeOnMainThreadAsync(() =>
-        //                                         {
-        //                                             _inferenceSession.Run(iterations);
-        //                                         });
         await Task.Run(() => _inferenceSession.Run(iterations));
 
         await SetBusy(false);
@@ -129,6 +125,10 @@ public partial class MainPage : ContentPage
                                                  {
                                                      BusyIndicator.IsRunning = busy;
                                                      BusyIndicator.IsVisible = busy;
+                                                     // disable controls that would create a new session or another
+                                                     // Run call until we're done with the current Run.
+                                                     ExecutionProviderOptions.IsEnabled = !busy;
+                                                     RunButton.IsEnabled = !busy;
                                                  });
     }
 

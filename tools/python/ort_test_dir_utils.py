@@ -146,7 +146,17 @@ def create_test_dir(
     # save expected output data if provided. run model to create if not.
     if not name_output_map:
         output_names = [o.name for o in model_outputs]
-        sess = ort.InferenceSession(test_model_filename)
+        so = ort.SessionOptions()
+
+        # try and enable onnxruntime-extensions if present
+        try:
+            import onnxruntime_extensions
+            so.register_custom_ops_library(onnxruntime_extensions.get_library_path())
+
+        except ImportError:
+            pass
+
+        sess = ort.InferenceSession(test_model_filename, so)
         outputs = sess.run(output_names, name_input_map)
         name_output_map = {}
         for name, data in zip(output_names, outputs):

@@ -199,7 +199,7 @@ if __name__ == "__main__":
             sys.exit(-1)
 
         if args.raw:
-            imp_np = np.fromfile(args.input, np.byte)
+            img_np = np.fromfile(args.input, np.ubyte)
         else:
             img_np = image_to_numpy(args.input, args.resize, args.channels_last, args.add_batch_dim)
 
