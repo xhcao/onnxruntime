@@ -130,11 +130,18 @@ def get_arg_parser():
 
     image_to_pb_group = parser.add_argument_group("image_to_pb", "image_to_pb specific options")
     image_to_pb_group.add_argument(
+        "--raw",
+        default=None,
+        action="store_true",
+        help="Save raw image bytes for usage with a model that has the DecodeImage custom operator "
+             "from onnxruntime-extensions.",
+    )
+    image_to_pb_group.add_argument(
         "--resize",
         default=None,
         type=lambda s: [int(item) for item in s.split(",")],
         help="Provide the height and width to resize to as comma separated values."
-        " e.g. --shape 200,300 will resize to height 200 and width 300.",
+             " e.g. --shape 200,300 will resize to height 200 and width 300.",
     )
     image_to_pb_group.add_argument(
         "--channels_last", action="store_true", help="Transpose image from channels first to channels last."
@@ -191,7 +198,11 @@ if __name__ == "__main__":
             print("Missing argument. Need input, output, name to be specified.", file=sys.stderr)
             sys.exit(-1)
 
-        img_np = image_to_numpy(args.input, args.resize, args.channels_last, args.add_batch_dim)
+        if args.raw:
+            imp_np = np.fromfile(args.input, np.byte)
+        else:
+            img_np = image_to_numpy(args.input, args.resize, args.channels_last, args.add_batch_dim)
+
         numpy_to_pb(args.name, img_np, args.output)
     elif args.action == "random_to_pb":
         if not args.output or not args.shape or not args.datatype or not args.name:

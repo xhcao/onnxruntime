@@ -45,22 +45,31 @@
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
-  	<!-- create OnnxMl.cs and add to project -->
-  	<Target Name="ProtoGen" BeforeTargets="BeforeBuild" Condition="Exists('$(ProtocExe)')">
-	    <Exec Command="$(ProtocExe) -I=$(ProtoSrc) --csharp_out=. $(ProtoSrc)\onnx-ml.proto3" ContinueOnError="false"></Exec>
-  	</Target>
+	<ItemGroup>
+		<Compile Include="..\..\test\Microsoft.ML.OnnxRuntime.Tests.Common\Tensors\TensorComparers.cs" />
+		<Compile Include="..\Microsoft.ML.OnnxRuntime.PerfTool\OnnxMl.cs" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Google.Protobuf" Version="3.16.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="7.0.0" />
 		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.16.0-dev-20230707-1222-2a11f29eaa" />
 		<PackageReference Include="Microsoft.ML.OnnxRuntime.Extensions" Version="0.8.0" />
+	</ItemGroup>
+
+	<!-- Project loaded by MauiModelTester.sln. Use the nightly package. -->
+	<ItemGroup Condition="'$(SolutionName)'=='MauiModelTester'">
 		<PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.16.0-dev-20230707-1224-2a11f29eaa" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\..\src\Microsoft.ML.OnnxRuntime\Microsoft.ML.OnnxRuntime.csproj" />
-	  <Compile Include="..\..\test\Microsoft.ML.OnnxRuntime.Tests.Common\Tensors\TensorComparers.cs" />
+	<!-- Project loaded by the ORT C# solution in /csharp. Use the local build of the C# wrapper -->
+	<ItemGroup Condition="'$(SolutionName)'!='MauiModelTester'">
+	  	<ProjectReference Include="..\..\src\Microsoft.ML.OnnxRuntime\Microsoft.ML.OnnxRuntime.csproj" />
 	</ItemGroup>
 
+	<!-- debug output - makes finding/fixing any issues with the the conditions easy.   -->
+	<Target Name="DumpValues" BeforeTargets="PreBuildEvent">
+		<Message Text="OnnxRuntimeCsharpRoot='$(OnnxRuntimeCsharpRoot)'" />
+		<Message Text="SolutionName='$(SolutionName)'" />
+	</Target>
 </Project>

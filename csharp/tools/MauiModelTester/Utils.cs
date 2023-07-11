@@ -58,13 +58,32 @@ namespace MauiModelTester
         internal static OrtValue CreateOrtValueFromTensorProto(Onnx.TensorProto tensorProto)
         {
             Type tensorElementType = GetElementType((TensorElementType)tensorProto.DataType);
+            OrtValue ortValue = null;
 
-            // use reflection to call generic method
-            var func = typeof(Utils)
-                           .GetMethod(nameof(TensorProtoToOrtValue), BindingFlags.Static | BindingFlags.NonPublic)
-                           .MakeGenericMethod(tensorElementType);
+            // special case for strings
+            if (tensorElementType == typeof(string))
+            {
+                var numElements = tensorProto.Dims.Aggregate(1L, (x, y) => x * y);
+                ortValue = OrtValue.CreateTensorWithEmptyStrings(OrtAllocator.DefaultInstance,
+                                                                 tensorProto.Dims.ToArray());
 
-            return (OrtValue)func.Invoke(null, new[] { tensorProto });
+                int idx = 0;
+                foreach (var str in tensorProto.StringData)
+                {
+                    ortValue.FillStringTensorElement(str.Span, idx++);
+                }
+            }
+            else
+            {
+                // use reflection to call generic method
+                var func = typeof(Utils)
+                               .GetMethod(nameof(TensorProtoToOrtValue), BindingFlags.Static | BindingFlags.NonPublic)
+                               .MakeGenericMethod(tensorElementType);
+
+                ortValue = (OrtValue)func.Invoke(null, new[] { tensorProto });
+            }
+
+            return ortValue;
         }
 
         internal static Type GetElementType(TensorElementType elemType)
@@ -145,8 +164,6 @@ namespace MauiModelTester
                         $"Expected:{expectedTypeAndShape.ElementCount} Actual:{actualTypeAndShape.ElementCount}");
                 }
 
-                // var expectedData = expected.GetTensorDataAsSpan<T>();
-                // var actualData = actual.GetTensorDataAsSpan<T>();
                 var expectedData = getDataFn(expected);
                 var actualData = getDataFn(actual);
 
@@ -223,7 +240,6 @@ namespace MauiModelTester
                         break;
                     default:
                         throw new ArgumentException($"Unexpected data type of {tensorElementType}");
-                        break;
                 }
             }
         }

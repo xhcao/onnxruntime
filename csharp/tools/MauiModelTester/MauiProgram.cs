@@ -14,7 +14,9 @@ public static class MauiProgram
                                                  });
 
 #if DEBUG
+        // Add the extension debug logger so Debug.WriteLine output shows up in the Output window when running in VS
         builder.Logging.AddDebug();
+        System.Diagnostics.Debug.WriteLine("Debug output enabled.");
 #endif
 
         return builder.Build();
