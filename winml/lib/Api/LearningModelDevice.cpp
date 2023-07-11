@@ -12,8 +12,7 @@
 
 namespace WINMLP {
 
-/*static*/ void LearningModelDevice::DllUnload() {
-}
+/*static*/ void LearningModelDevice::DllUnload() {}
 
 wg::DisplayAdapterId LearningModelDevice::AdapterId() try {
   wg::DisplayAdapterId id;
@@ -23,7 +22,8 @@ wg::DisplayAdapterId LearningModelDevice::AdapterId() try {
 }
 WINML_CATCH_ALL
 
-LearningModelDevice::LearningModelDevice(winml::LearningModelDeviceKind const& deviceKind) try : m_deviceCache(std::make_unique<_winml::D3DDeviceCache>(deviceKind)) {
+LearningModelDevice::LearningModelDevice(winml::LearningModelDeviceKind const& deviceKind) try
+    : m_deviceCache(std::make_unique<_winml::D3DDeviceCache>(deviceKind)) {
   m_deviceKind = deviceKind;
   telemetry_helper.SetLearningModelDeviceKind(static_cast<int>(deviceKind));
   m_isCpuDevice = m_deviceKind == LearningModelDeviceKind::Cpu || m_deviceKind == LearningModelDeviceKind::Default;
@@ -33,14 +33,15 @@ LearningModelDevice::LearningModelDevice(winml::LearningModelDeviceKind const& d
 }
 WINML_CATCH_ALL
 
-LearningModelDevice::LearningModelDevice(wgdx::Direct3D11::IDirect3DDevice const& device) try : m_deviceCache(std::make_unique<_winml::D3DDeviceCache>(device)) {
+LearningModelDevice::LearningModelDevice(wgdx::Direct3D11::IDirect3DDevice const& device) try
+    : m_deviceCache(std::make_unique<_winml::D3DDeviceCache>(device)) {
   m_deviceKind = LearningModelDeviceKind::DirectX;
   m_isCpuDevice = false;
 }
 WINML_CATCH_ALL
 
-LearningModelDevice::LearningModelDevice(ID3D12CommandQueue* queue) try : m_deviceKind(LearningModelDeviceKind::DirectX),
-                                                                          m_deviceCache(std::make_unique<_winml::D3DDeviceCache>(queue)) {
+LearningModelDevice::LearningModelDevice(ID3D12CommandQueue* queue) try
+    : m_deviceKind(LearningModelDeviceKind::DirectX), m_deviceCache(std::make_unique<_winml::D3DDeviceCache>(queue)) {
   m_isCpuDevice = false;
 }
 WINML_CATCH_ALL
@@ -49,55 +50,43 @@ LearningModelDevice::~LearningModelDevice() {
   // needed for shared ptr destruction
 }
 
-winml::LearningModelDevice LearningModelDevice::CreateFromDirect3D11Device(wgdx::Direct3D11::IDirect3DDevice const& device) try {
+winml::LearningModelDevice LearningModelDevice::CreateFromDirect3D11Device(
+    wgdx::Direct3D11::IDirect3DDevice const& device
+) try {
   return make<LearningModelDevice>(device);
 }
 WINML_CATCH_ALL
 
 std::shared_ptr<_winml::ConverterResourceStore> LearningModelDevice::TensorizerStore() {
-  std::call_once(m_tensorizerStoreInitialized, [this]() { m_tensorizerStore = _winml::ConverterResourceStore::Create(5); });
+  std::call_once(m_tensorizerStoreInitialized, [this]() {
+    m_tensorizerStore = _winml::ConverterResourceStore::Create(5);
+  });
   return m_tensorizerStore;
 }
 
 std::shared_ptr<_winml::ConverterResourceStore> LearningModelDevice::DetensorizerStore() {
-  std::call_once(m_detensorizerStoreInitialized, [this]() { m_detensorizerStore = _winml::ConverterResourceStore::Create(5); });
+  std::call_once(m_detensorizerStoreInitialized, [this]() {
+    m_detensorizerStore = _winml::ConverterResourceStore::Create(5);
+  });
   return m_detensorizerStore;
 }
 
-winml::LearningModelDeviceKind
-LearningModelDevice::GetDeviceKind() {
-  return m_deviceKind;
-}
+winml::LearningModelDeviceKind LearningModelDevice::GetDeviceKind() { return m_deviceKind; }
 
-bool LearningModelDevice::IsCpuDevice() {
-  return m_isCpuDevice;
-}
+bool LearningModelDevice::IsCpuDevice() { return m_isCpuDevice; }
 
-const LUID&
-LearningModelDevice::GetDeviceLuid() {
-  return m_deviceCache->GetDeviceLuid();
-}
+const LUID& LearningModelDevice::GetDeviceLuid() { return m_deviceCache->GetDeviceLuid(); }
 
-_winml::D3DDeviceCache*
-LearningModelDevice::GetD3DDeviceCache() {
-  return m_deviceCache.get();
-}
+_winml::D3DDeviceCache* LearningModelDevice::GetD3DDeviceCache() { return m_deviceCache.get(); }
 
-wgdx::Direct3D11::IDirect3DDevice
-LearningModelDevice::Direct3D11Device() try {
+wgdx::Direct3D11::IDirect3DDevice LearningModelDevice::Direct3D11Device() try {
   return m_deviceCache->GetWinrtDevice();
 }
 WINML_CATCH_ALL
 
-ID3D12Device*
-LearningModelDevice::GetD3DDevice() {
-  return m_deviceCache->GetD3D12Device();
-}
+ID3D12Device* LearningModelDevice::GetD3DDevice() { return m_deviceCache->GetD3D12Device(); }
 
-ID3D12CommandQueue*
-LearningModelDevice::GetDeviceQueue() {
-  return m_deviceCache->GetCommandQueue();
-}
+ID3D12CommandQueue* LearningModelDevice::GetDeviceQueue() { return m_deviceCache->GetCommandQueue(); }
 
 STDMETHODIMP
 LearningModelDevice::SetMetacommandsEnabled(boolean enabled) {
@@ -105,14 +94,10 @@ LearningModelDevice::SetMetacommandsEnabled(boolean enabled) {
   return S_OK;
 }
 
-bool LearningModelDevice::MetacommandsEnabled() {
-  return m_areMetacommandsEnabled;
-}
+bool LearningModelDevice::MetacommandsEnabled() { return m_areMetacommandsEnabled; }
 
 STDMETHODIMP_(boolean)
-LearningModelDevice::SharedHandleInitialized() {
-  return m_deviceCache->SharedHandleInitialized();
-}
+LearningModelDevice::SharedHandleInitialized() { return m_deviceCache->SharedHandleInitialized(); }
 
 STDMETHODIMP
 LearningModelDevice::GetThreadPool(_winml::IThreading** thread_pool) {
@@ -147,15 +132,15 @@ bool LearningModelDevice::AllowSpinning() {
   }
 }
 
-}  // namespace WINMLP 
+}  // namespace WINMLP
 
 namespace WINML::factory_implementation {
 
 // copied from cppwinrt magic to create abi wrappers.   Need to do it this way
 // since peeps underneath (like the constructor) will throw
 HRESULT __stdcall LearningModelDevice::CreateFromD3D12CommandQueue(
-    ID3D12CommandQueue* queue,
-    IUnknown** device) noexcept {
+    ID3D12CommandQueue* queue, IUnknown** device
+) noexcept {
   try {
     WINML_THROW_HR_IF_NULL_MSG(E_INVALIDARG, queue, "Failed to create LearningModelDevice. Invalid argument queue.");
     WINML_THROW_HR_IF_NULL_MSG(E_INVALIDARG, device, "Failed to create LearningModelDevice. Invalid argument device.");

@@ -96,7 +96,9 @@ ILearningModelFeatureValue MakeImage(const IImageFeatureDescriptor& /*descriptor
   return imageValue;
 }
 
-ILearningModelFeatureValue FeatureValueFromFeatureValueDescriptor(ILearningModelFeatureDescriptor descriptor, wf::IInspectable data = nullptr) {
+ILearningModelFeatureValue FeatureValueFromFeatureValueDescriptor(
+    ILearningModelFeatureDescriptor descriptor, wf::IInspectable data = nullptr
+) {
   auto kind = descriptor.Kind();
   switch (kind) {
     case LearningModelFeatureKind::Image: {
@@ -251,7 +253,8 @@ static void Scenario6BindWithProperties() {
     bounds.Height = 100;
     bounds.Width = 100;
 
-    auto bitmapsBoundsProperty = wf::PropertyValue::CreateUInt32Array({bounds.X, bounds.Y, bounds.Width, bounds.Height});
+    auto bitmapsBoundsProperty =
+        wf::PropertyValue::CreateUInt32Array({bounds.X, bounds.Y, bounds.Width, bounds.Height});
     // insert it in the property set
     propertySet.Insert(L"BitmapBounds", bitmapsBoundsProperty);
 
@@ -297,7 +300,8 @@ static void Scenario7EvalWithNoBind() {
   WINML_EXPECT_NO_THROW(session.EvaluateFeaturesAsync(map, L"").get());
 }
 
-//! Scenario8: choose which device to run the model on - PreferredDeviceType, PreferredDevicePerformance, SetDeviceFromSurface, SetDevice
+//! Scenario8: choose which device to run the model on - PreferredDeviceType, PreferredDevicePerformance,
+//! SetDeviceFromSurface, SetDevice
 // create a session on the default device
 static void Scenario8SetDeviceSampleDefault() {
   // load a model
@@ -354,7 +358,10 @@ static void Scenario8SetDeviceSampleMyCameraDevice() {
   std::wstring filePath = FileHelpers::GetModulePath() + L"model.onnx";
   LearningModel model = LearningModel::LoadFromFilePath(filePath);
 
-  auto devices = winrt::Windows::Devices::Enumeration::DeviceInformation::FindAllAsync(winrt::Windows::Devices::Enumeration::DeviceClass::VideoCapture).get();
+  auto devices = winrt::Windows::Devices::Enumeration::DeviceInformation::FindAllAsync(
+                     winrt::Windows::Devices::Enumeration::DeviceClass::VideoCapture
+  )
+                     .get();
   winrt::hstring deviceId;
   if (devices.Size() > 0) {
     auto device = devices.GetAt(0);
@@ -385,8 +392,17 @@ static void Scenario8SetDeviceSampleD3D11Device() {
   winrt::com_ptr<ID3D11DeviceContext> pContext = nullptr;
   D3D_FEATURE_LEVEL fl;
   HRESULT result = D3D11CreateDevice(
-      nullptr, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0,
-      D3D11_SDK_VERSION, pD3D11Device.put(), &fl, pContext.put());
+      nullptr,
+      D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE,
+      nullptr,
+      0,
+      nullptr,
+      0,
+      D3D11_SDK_VERSION,
+      pD3D11Device.put(),
+      &fl,
+      pContext.put()
+  );
   if (FAILED(result)) {
     WINML_SKIP_TEST("Test skipped because d3d11 device is missing");
   }
@@ -398,12 +414,13 @@ static void Scenario8SetDeviceSampleD3D11Device() {
   winrt::com_ptr<::IInspectable> pInspectable;
   CreateDirect3D11DeviceFromDXGIDevice(pDxgiDevice.get(), pInspectable.put());
 
-  LearningModelDevice device = LearningModelDevice::CreateFromDirect3D11Device(
-      pInspectable.as<wgdx::Direct3D11::IDirect3DDevice>());
+  LearningModelDevice device =
+      LearningModelDevice::CreateFromDirect3D11Device(pInspectable.as<wgdx::Direct3D11::IDirect3DDevice>());
   LearningModelSession session(model, device);
 }
 
-// create a session on the a specific dx device that I chose some other way , note we have to use native interop here and pass a cmd queue
+// create a session on the a specific dx device that I chose some other way , note we have to use native interop here
+// and pass a cmd queue
 static void Scenario8SetDeviceSampleCustomCommandQueue() {
   // load a model
   std::wstring filePath = FileHelpers::GetModulePath() + L"model.onnx";
@@ -417,7 +434,14 @@ static void Scenario8SetDeviceSampleCustomCommandQueue() {
   }
   HRESULT result = S_OK;
   if (support.has_dxgi) {
-    WINML_EXPECT_NO_THROW(result = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(pD3D12Device.put())));
+    WINML_EXPECT_NO_THROW(
+        result = D3D12CreateDevice(
+            nullptr,
+            D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_12_0,
+            __uuidof(ID3D12Device),
+            reinterpret_cast<void**>(pD3D12Device.put())
+        )
+    );
   }
 #ifdef ENABLE_DXCORE
   if (support.has_dxgi == false) {
@@ -429,7 +453,14 @@ static void Scenario8SetDeviceSampleCustomCommandQueue() {
     winrt::com_ptr<IDXCoreAdapter> spAdapter;
     WINML_EXPECT_NO_THROW(spAdapterList->GetAdapter(0, IID_PPV_ARGS(spAdapter.put())));
     ::IUnknown* pAdapter = spAdapter.get();
-    WINML_EXPECT_NO_THROW(result = D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(pD3D12Device.put())));
+    WINML_EXPECT_NO_THROW(
+        result = D3D12CreateDevice(
+            pAdapter,
+            D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_12_0,
+            __uuidof(ID3D12Device),
+            reinterpret_cast<void**>(pD3D12Device.put())
+        )
+    );
   }
 #endif
 
@@ -450,14 +481,16 @@ static void Scenario8SetDeviceSampleCustomCommandQueue() {
   LearningModelSession dmlSessionCustom(model, dmlDeviceCustom);
 }
 
-//pass a Tensor in as an input GPU
+// pass a Tensor in as an input GPU
 static void Scenario9LoadBindEvalInputTensorGPU() {
   // load a model
   std::wstring filePath = FileHelpers::GetModulePath() + L"fns-candy.onnx";
   LearningModel model = LearningModel::LoadFromFilePath(filePath);
 
   winrt::com_ptr<ID3D12Device> pD3D12Device;
-  WINML_EXPECT_NO_THROW(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), pD3D12Device.put_void()));
+  WINML_EXPECT_NO_THROW(D3D12CreateDevice(
+      nullptr, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), pD3D12Device.put_void()
+  ));
   winrt::com_ptr<ID3D12CommandQueue> dxQueue;
   D3D12_COMMAND_QUEUE_DESC commandQueueDesc = {};
   commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -477,11 +510,7 @@ static void Scenario9LoadBindEvalInputTensorGPU() {
 
   UINT64 bufferbytesize = 720 * 720 * 3 * sizeof(float);
   D3D12_HEAP_PROPERTIES heapProperties = {
-      D3D12_HEAP_TYPE_DEFAULT,
-      D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-      D3D12_MEMORY_POOL_UNKNOWN,
-      0,
-      0};
+      D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0};
   D3D12_RESOURCE_DESC resourceDesc = {
       D3D12_RESOURCE_DIMENSION_BUFFER,
       0,
@@ -502,7 +531,8 @@ static void Scenario9LoadBindEvalInputTensorGPU() {
       D3D12_RESOURCE_STATE_COMMON,
       nullptr,
       __uuidof(ID3D12Resource),
-      pGPUResource.put_void());
+      pGPUResource.put_void()
+  );
   winrt::com_ptr<::IUnknown> spUnkTensor;
   TensorFloat input1imagetensor(nullptr);
   __int64 shape[4] = {1, 3, 720, 720};
@@ -517,7 +547,8 @@ static void Scenario9LoadBindEvalInputTensorGPU() {
   VideoFrame outputimage(
       BitmapPixelFormat::Rgba8,
       static_cast<int32_t>(outputtensorshape.GetAt(3)),
-      static_cast<int32_t>(outputtensorshape.GetAt(2)));
+      static_cast<int32_t>(outputtensorshape.GetAt(2))
+  );
   ImageFeatureValue outputTensor = ImageFeatureValue::CreateFromVideoFrame(outputimage);
 
   WINML_EXPECT_NO_THROW(modelBinding.Bind(model.OutputFeatures().First().Current().Name(), outputTensor));
@@ -605,7 +636,7 @@ struct SwapChainEntry {
 };
 void SubmitEval(LearningModel model, SwapChainEntry* sessionBindings, int swapchaindex) {
   if (sessionBindings[swapchaindex].activetask != nullptr) {
-    //make sure the previously submitted work for this swapchain index is complete before reusing resources
+    // make sure the previously submitted work for this swapchain index is complete before reusing resources
     sessionBindings[swapchaindex].activetask.get();
   }
   // bind the input and the output buffers by name
@@ -616,11 +647,12 @@ void SubmitEval(LearningModel model, SwapChainEntry* sessionBindings, int swapch
     sessionBindings[swapchaindex].binding.Bind(input.Name(), featureValue);
   }
   // submit an eval and wait for it to finish submitting work
-  sessionBindings[swapchaindex].activetask = sessionBindings[swapchaindex].session.EvaluateAsync(sessionBindings[swapchaindex].binding, L"0");
+  sessionBindings[swapchaindex].activetask =
+      sessionBindings[swapchaindex].session.EvaluateAsync(sessionBindings[swapchaindex].binding, L"0");
   // return without waiting for the submit to finish, setup the completion handler
 }
 
-//Scenario14:Load single model, run it multiple times on a single gpu device using a fast swapchain pattern
+// Scenario14:Load single model, run it multiple times on a single gpu device using a fast swapchain pattern
 static void Scenario14RunModelSwapchain() {
   const int swapchainentrycount = 3;
   SwapChainEntry sessionBindings[swapchainentrycount];
@@ -636,17 +668,17 @@ static void Scenario14RunModelSwapchain() {
     sessionBindings[i].binding = LearningModelBinding(sessionBindings[i].session);
   }
 
-  //submit 10 evaluations to 3 swapchain entries
+  // submit 10 evaluations to 3 swapchain entries
   int swapchaindex = 0;
   for (int i = 0; i < 10; i++) {
     swapchaindex = swapchaindex % swapchainentrycount;
     SubmitEval(model, sessionBindings, (swapchaindex)++);
   }
 
-  //wait for all work to be completed
+  // wait for all work to be completed
   for (int i = 0; i < swapchainentrycount; i++) {
     if (sessionBindings[i].activetask != nullptr) {
-      //make sure the previously submitted work for this swapchain index is compolete before resuing resources
+      // make sure the previously submitted work for this swapchain index is compolete before resuing resources
       sessionBindings[i].activetask.get();
     }
   }
@@ -662,9 +694,7 @@ static void LoadBindEval_CustomOperator_CPU(const wchar_t* fileName) {
   auto inputShape = std::vector<int64_t>{5};
   auto inputData = std::vector<float>{-50.f, -25.f, 0.f, 25.f, 50.f};
   auto inputValue =
-      TensorFloat::CreateFromIterable(
-          inputShape,
-          winrt::single_threaded_vector<float>(std::move(inputData)).GetView());
+      TensorFloat::CreateFromIterable(inputShape, winrt::single_threaded_vector<float>(std::move(inputData)).GetView());
   WINML_EXPECT_NO_THROW(bindings.Bind(L"X", inputValue));
 
   auto outputValue = TensorFloat::Create();
@@ -702,14 +732,15 @@ static void Scenario17DevDiagnostics() {
  * Custom Operator Tests are labeled as GPU tests because the DML code is interlaced with the custom op code
  * even though CPU custom ops shouldn't be dependent on GPU functionality.
  * These should be reclassed to ScenarioCppWinrt once the DML code is decoupled from the custom op code.
-**/
+ **/
 // create a session that loads a model with a branch new operator, register the custom operator, and load/bind/eval
 static void Scenario20aLoadBindEvalCustomOperatorCPU() {
   std::wstring filePath = FileHelpers::GetModulePath() + L"noisy_relu.onnx";
   LoadBindEval_CustomOperator_CPU(filePath.c_str());
 }
 
-// create a session that loads a model with an overridden operator, register the replacement custom operator, and load/bind/eval
+// create a session that loads a model with an overridden operator, register the replacement custom operator, and
+// load/bind/eval
 static void Scenario20bLoadBindEvalReplacementCustomOperatorCPU() {
   std::wstring filePath = FileHelpers::GetModulePath() + L"relu.onnx";
   LoadBindEval_CustomOperator_CPU(filePath.c_str());
@@ -750,7 +781,7 @@ static void Scenario21RunModel2ChainZ() {
   // now bind that output to the next models input
   binding2.Bind(input.Name(), outputValue);
 
-  //eval the second model
+  // eval the second model
   auto session2AsyncOp = session2.EvaluateAsync(binding2, L"");
 
   // now get the output don't wait, queue up the next model
@@ -787,7 +818,7 @@ bool VerifyHelper(ImageFeatureValue actual, ImageFeatureValue expected) {
   UINT errors = 0;
   for (uint32_t i = 0; i < size; i++, pActualByte++, pExpectedByte++) {
     // Only the check the first three channels, which are (B, G, R)
-    if((i + 1) % 4 == 0) continue;
+    if ((i + 1) % 4 == 0) continue;
     auto diff = std::abs(*pActualByte - *pExpectedByte);
     if (diff > epsilon) {
       errors++;
@@ -846,7 +877,8 @@ static void Scenario22ImageBindingAsCPUTensor() {
   VideoFrame outputimage(
       BitmapPixelFormat::Bgra8,
       static_cast<int32_t>(outputtensorshape.GetAt(3)),
-      static_cast<int32_t>(outputtensorshape.GetAt(2)));
+      static_cast<int32_t>(outputtensorshape.GetAt(2))
+  );
   ImageFeatureValue outputTensor = ImageFeatureValue::CreateFromVideoFrame(outputimage);
   WINML_EXPECT_NO_THROW(binding.Bind(model.OutputFeatures().First().Current().Name(), outputTensor));
 
@@ -864,7 +896,8 @@ static void Scenario22ImageBindingAsCPUTensor() {
   // check the output video frame object by saving output image to disk
   std::wstring outputDataImageFileName = L"out_cpu_tensor_fish_720.jpg";
   StorageFolder currentfolder = StorageFolder::GetFolderFromPathAsync(modulePath).get();
-  StorageFile outimagefile = currentfolder.CreateFileAsync(outputDataImageFileName, CreationCollisionOption::ReplaceExisting).get();
+  StorageFile outimagefile =
+      currentfolder.CreateFileAsync(outputDataImageFileName, CreationCollisionOption::ReplaceExisting).get();
   IRandomAccessStream writestream = outimagefile.OpenAsync(FileAccessMode::ReadWrite).get();
   BitmapEncoder encoder = BitmapEncoder::CreateAsync(BitmapEncoder::JpegEncoderId(), writestream).get();
   // Set the software bitmap
@@ -911,7 +944,12 @@ static void Scenario22ImageBindingAsGPUTensor() {
 
   // create the d3d device.
   winrt::com_ptr<ID3D12Device> pD3D12Device = nullptr;
-  WINML_EXPECT_NO_THROW(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), reinterpret_cast<void**>(&pD3D12Device)));
+  WINML_EXPECT_NO_THROW(D3D12CreateDevice(
+      nullptr,
+      D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0,
+      __uuidof(ID3D12Device),
+      reinterpret_cast<void**>(&pD3D12Device)
+  ));
 
   // create the command queue.
   winrt::com_ptr<ID3D12CommandQueue> dxQueue = nullptr;
@@ -937,28 +975,17 @@ static void Scenario22ImageBindingAsGPUTensor() {
   winrt::com_ptr<ID3D12CommandAllocator> alloctor;
   winrt::com_ptr<ID3D12GraphicsCommandList> cmdList;
 
-  pD3D12Device->CreateCommandAllocator(
-      queuetype,
-      winrt::guid_of<ID3D12CommandAllocator>(),
-      alloctor.put_void());
+  pD3D12Device->CreateCommandAllocator(queuetype, winrt::guid_of<ID3D12CommandAllocator>(), alloctor.put_void());
 
   pD3D12Device->CreateCommandList(
-      0,
-      queuetype,
-      alloctor.get(),
-      nullptr,
-      winrt::guid_of<ID3D12CommandList>(),
-      cmdList.put_void());
+      0, queuetype, alloctor.get(), nullptr, winrt::guid_of<ID3D12CommandList>(), cmdList.put_void()
+  );
 
   // Create Committed Resource
   // 3 is number of channels we use. R G B without alpha.
   UINT64 bufferbytesize = 3 * sizeof(float) * softwareBitmap.PixelWidth() * softwareBitmap.PixelHeight();
   D3D12_HEAP_PROPERTIES heapProperties = {
-      D3D12_HEAP_TYPE_DEFAULT,
-      D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-      D3D12_MEMORY_POOL_UNKNOWN,
-      0,
-      0};
+      D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0};
   D3D12_RESOURCE_DESC resourceDesc = {
       D3D12_RESOURCE_DIMENSION_BUFFER,
       0,
@@ -980,7 +1007,8 @@ static void Scenario22ImageBindingAsGPUTensor() {
       D3D12_RESOURCE_STATE_COMMON,
       nullptr,
       __uuidof(ID3D12Resource),
-      pGPUResource.put_void());
+      pGPUResource.put_void()
+  );
 
   // Create the GPU upload buffer.
   CD3DX12_HEAP_PROPERTIES props(D3D12_HEAP_TYPE_UPLOAD);
@@ -992,7 +1020,8 @@ static void Scenario22ImageBindingAsGPUTensor() {
       D3D12_RESOURCE_STATE_GENERIC_READ,
       nullptr,
       __uuidof(ID3D12Resource),
-      imageUploadHeap.put_void()));
+      imageUploadHeap.put_void()
+  ));
 
   // Copy from Cpu to GPU
   D3D12_SUBRESOURCE_DATA CPUData = {};
@@ -1021,7 +1050,8 @@ static void Scenario22ImageBindingAsGPUTensor() {
   VideoFrame outputimage(
       BitmapPixelFormat::Rgba8,
       static_cast<int32_t>(outputtensorshape.GetAt(3)),
-      static_cast<int32_t>(outputtensorshape.GetAt(2)));
+      static_cast<int32_t>(outputtensorshape.GetAt(2))
+  );
   ImageFeatureValue outputTensor = ImageFeatureValue::CreateFromVideoFrame(outputimage);
 
   WINML_EXPECT_NO_THROW(modelBinding.Bind(model.OutputFeatures().First().Current().Name(), outputTensor));
@@ -1037,9 +1067,10 @@ static void Scenario22ImageBindingAsGPUTensor() {
   ImageFeatureValue bm_imagevalue = ImageFeatureValue::CreateFromVideoFrame(bm_videoFrame);
   WINML_EXPECT_TRUE(VerifyHelper(bm_imagevalue, outputTensor));
 
-  //check the output video frame object
+  // check the output video frame object
   StorageFolder currentfolder = StorageFolder::GetFolderFromPathAsync(modulePath).get();
-  StorageFile outimagefile = currentfolder.CreateFileAsync(outputDataImageFileName, CreationCollisionOption::ReplaceExisting).get();
+  StorageFile outimagefile =
+      currentfolder.CreateFileAsync(outputDataImageFileName, CreationCollisionOption::ReplaceExisting).get();
   IRandomAccessStream writestream = outimagefile.OpenAsync(FileAccessMode::ReadWrite).get();
   BitmapEncoder encoder = BitmapEncoder::CreateAsync(BitmapEncoder::JpegEncoderId(), writestream).get();
   // Set the software bitmap
@@ -1052,12 +1083,10 @@ static void Scenario23NominalPixelRange() {
   std::wstring inputImagePath = modulePath + L"1080.jpg";
 
   // The following models have single op "add", with different metadata
-  std::vector<std::wstring> modelPaths = {
-    // Normalized_0_1 and image output
-    modulePath + L"Add_ImageNet1920WithImageMetadataBgr8_SRGB_0_1.onnx",
-    // Normalized_1_1 and image output
-    modulePath + L"Add_ImageNet1920WithImageMetadataBgr8_SRGB_1_1.onnx"
-  };
+  std::vector<std::wstring> modelPaths = {// Normalized_0_1 and image output
+                                          modulePath + L"Add_ImageNet1920WithImageMetadataBgr8_SRGB_0_1.onnx",
+                                          // Normalized_1_1 and image output
+                                          modulePath + L"Add_ImageNet1920WithImageMetadataBgr8_SRGB_1_1.onnx"};
 
   for (uint32_t model_i = 0; model_i < modelPaths.size(); model_i++) {
     // load model and create session
@@ -1070,12 +1099,11 @@ static void Scenario23NominalPixelRange() {
     auto imageValue = ImageFeatureValue::CreateFromVideoFrame(videoFrame);
 
     // Create Zero tensor
-    auto inputShape = std::vector<int64_t>{ 1, 3, 1080, 1920 };
+    auto inputShape = std::vector<int64_t>{1, 3, 1080, 1920};
     auto inputData = std::vector<float>(3 * 1080 * 1920, 0);
-    auto zeroValue =
-      TensorFloat::CreateFromIterable(
-        inputShape,
-        winrt::single_threaded_vector<float>(std::move(inputData)).GetView());
+    auto zeroValue = TensorFloat::CreateFromIterable(
+        inputShape, winrt::single_threaded_vector<float>(std::move(inputData)).GetView()
+    );
     // bind inputs
     binding.Bind(L"input_39", imageValue);
     binding.Bind(L"input_40", zeroValue);
@@ -1163,7 +1191,8 @@ static void SyncVsAsync() {
   VideoFrame outputimage(
       BitmapPixelFormat::Rgba8,
       static_cast<int32_t>(outputtensorshape.GetAt(3)),
-      static_cast<int32_t>(outputtensorshape.GetAt(2)));
+      static_cast<int32_t>(outputtensorshape.GetAt(2))
+  );
   ImageFeatureValue outputTensor = ImageFeatureValue::CreateFromVideoFrame(outputimage);
   WINML_EXPECT_NO_THROW(modelBinding.Bind(model.OutputFeatures().First().Current().Name(), outputTensor));
 
@@ -1172,7 +1201,8 @@ static void SyncVsAsync() {
   for (UINT i = 0; i < N; i++) {
     session.Evaluate(modelBinding, L"");
   }
-  auto syncTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startSync);
+  auto syncTime =
+      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startSync);
   std::cout << "Synchronous time for " << N << " evaluations: " << syncTime.count() << " milliseconds\n";
 
   // evaluate N times Asynchronously and time it
@@ -1184,9 +1214,12 @@ static void SyncVsAsync() {
     bindings[i].Bind(inputFeatureDescriptor.Current().Name(), imagetensor);
     bindings[i].Bind(
         model.OutputFeatures().First().Current().Name(),
-        VideoFrame(BitmapPixelFormat::Rgba8,
-                   static_cast<int32_t>(outputtensorshape.GetAt(3)),
-                   static_cast<int32_t>(outputtensorshape.GetAt(2))));
+        VideoFrame(
+            BitmapPixelFormat::Rgba8,
+            static_cast<int32_t>(outputtensorshape.GetAt(3)),
+            static_cast<int32_t>(outputtensorshape.GetAt(2))
+        )
+    );
   }
 
   auto startAsync = std::chrono::high_resolution_clock::now();
@@ -1197,7 +1230,8 @@ static void SyncVsAsync() {
   for (auto&& task : tasks) {
     task.get();
   }
-  auto asyncTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startAsync);
+  auto asyncTime =
+      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startAsync);
   std::cout << "Asynchronous time for " << N << " evaluations: " << asyncTime.count() << " milliseconds\n";
 }
 
@@ -1206,21 +1240,29 @@ static void CustomCommandQueueWithFence() {
   static const wchar_t* const inputDataImageFileName = L"fish_720.png";
 
   winrt::com_ptr<ID3D12Device> d3d12Device;
-  WINML_EXPECT_HRESULT_SUCCEEDED(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), d3d12Device.put_void()));
+  WINML_EXPECT_HRESULT_SUCCEEDED(
+      D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), d3d12Device.put_void())
+  );
 
   D3D12_COMMAND_QUEUE_DESC queueDesc = {};
   queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
   winrt::com_ptr<ID3D12CommandQueue> queue;
-  WINML_EXPECT_HRESULT_SUCCEEDED(d3d12Device->CreateCommandQueue(&queueDesc, __uuidof(ID3D12CommandQueue), queue.put_void()));
+  WINML_EXPECT_HRESULT_SUCCEEDED(
+      d3d12Device->CreateCommandQueue(&queueDesc, __uuidof(ID3D12CommandQueue), queue.put_void())
+  );
 
   winrt::com_ptr<ID3D12Fence> fence;
-  WINML_EXPECT_HRESULT_SUCCEEDED(d3d12Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), fence.put_void()));
+  WINML_EXPECT_HRESULT_SUCCEEDED(
+      d3d12Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), fence.put_void())
+  );
 
   auto devicefactory = winrt::get_activation_factory<LearningModelDevice, ILearningModelDeviceFactoryNative>();
 
   winrt::com_ptr<::IUnknown> learningModelDeviceUnknown;
-  WINML_EXPECT_HRESULT_SUCCEEDED(devicefactory->CreateFromD3D12CommandQueue(queue.get(), learningModelDeviceUnknown.put()));
+  WINML_EXPECT_HRESULT_SUCCEEDED(
+      devicefactory->CreateFromD3D12CommandQueue(queue.get(), learningModelDeviceUnknown.put())
+  );
 
   LearningModelDevice device = nullptr;
   WINML_EXPECT_NO_THROW(learningModelDeviceUnknown.as(device));
@@ -1252,7 +1294,8 @@ static void CustomCommandQueueWithFence() {
   VideoFrame outputimage(
       BitmapPixelFormat::Rgba8,
       static_cast<int32_t>(outputtensorshape.GetAt(3)),
-      static_cast<int32_t>(outputtensorshape.GetAt(2)));
+      static_cast<int32_t>(outputtensorshape.GetAt(2))
+  );
   ImageFeatureValue outputTensor = ImageFeatureValue::CreateFromVideoFrame(outputimage);
 
   WINML_EXPECT_NO_THROW(modelBinding.Bind(model.OutputFeatures().First().Current().Name(), outputTensor));
@@ -1311,7 +1354,8 @@ static void ReuseVideoFrame() {
       if (videoFrameSource == "SoftwareBitmap") {
         reuseVideoFrame = VideoFrame::CreateWithSoftwareBitmap(SoftwareBitmap(BitmapPixelFormat::Bgra8, 720, 720));
       } else {
-        reuseVideoFrame = VideoFrame::CreateAsDirect3D11SurfaceBacked(DirectXPixelFormat::B8G8R8X8UIntNormalized, 720, 720);
+        reuseVideoFrame =
+            VideoFrame::CreateAsDirect3D11SurfaceBacked(DirectXPixelFormat::B8G8R8X8UIntNormalized, 720, 720);
       }
       for (uint32_t i = 0; i < 3; ++i) {
         SoftwareBitmap softwareBitmap = FileHelpers::GetSoftwareBitmapFromFile(inputImagePath);
@@ -1349,30 +1393,35 @@ static void EncryptedStream() {
 
   // encrypt
   auto algorithmName = winrt::Windows::Security::Cryptography::Core::SymmetricAlgorithmNames::AesCbcPkcs7();
-  auto algorithm = winrt::Windows::Security::Cryptography::Core::SymmetricKeyAlgorithmProvider::OpenAlgorithm(algorithmName);
+  auto algorithm =
+      winrt::Windows::Security::Cryptography::Core::SymmetricKeyAlgorithmProvider::OpenAlgorithm(algorithmName);
   uint32_t keyLength = 32;
   auto keyBuffer = winrt::Windows::Security::Cryptography::CryptographicBuffer::GenerateRandom(keyLength);
   auto key = algorithm.CreateSymmetricKey(keyBuffer);
   auto iv = winrt::Windows::Security::Cryptography::CryptographicBuffer::GenerateRandom(algorithm.BlockLength());
-  auto encryptedBuffer = winrt::Windows::Security::Cryptography::Core::CryptographicEngine::Encrypt(key, fileBuffer, iv);
+  auto encryptedBuffer =
+      winrt::Windows::Security::Cryptography::Core::CryptographicEngine::Encrypt(key, fileBuffer, iv);
 
   // verify loading the encrypted stream fails appropriately.
   auto encryptedStream = InMemoryRandomAccessStream();
   encryptedStream.WriteAsync(encryptedBuffer).get();
-  WINML_EXPECT_THROW_SPECIFIC(LearningModel::LoadFromStream(RandomAccessStreamReference::CreateFromStream(encryptedStream)),
-                              winrt::hresult_error,
-                              [](const winrt::hresult_error& e) -> bool {
-                                return e.code() == E_INVALIDARG;
-                              });
+  WINML_EXPECT_THROW_SPECIFIC(
+      LearningModel::LoadFromStream(RandomAccessStreamReference::CreateFromStream(encryptedStream)),
+      winrt::hresult_error,
+      [](const winrt::hresult_error& e) -> bool { return e.code() == E_INVALIDARG; }
+  );
 
   // now decrypt
-  auto decryptedBuffer = winrt::Windows::Security::Cryptography::Core::CryptographicEngine::Decrypt(key, encryptedBuffer, iv);
+  auto decryptedBuffer =
+      winrt::Windows::Security::Cryptography::Core::CryptographicEngine::Decrypt(key, encryptedBuffer, iv);
   auto decryptedStream = InMemoryRandomAccessStream();
   decryptedStream.WriteAsync(decryptedBuffer).get();
 
   // load!
   LearningModel model = nullptr;
-  WINML_EXPECT_NO_THROW(model = LearningModel::LoadFromStream(RandomAccessStreamReference::CreateFromStream(decryptedStream)));
+  WINML_EXPECT_NO_THROW(
+      model = LearningModel::LoadFromStream(RandomAccessStreamReference::CreateFromStream(decryptedStream))
+  );
   LearningModelSession session = nullptr;
   WINML_EXPECT_NO_THROW(session = LearningModelSession(model));
 }
@@ -1419,12 +1468,16 @@ static void D2DInterop() {
   LearningModel model = LearningModel::LoadFromFilePath(filePath);
   // create a dx12 device
   winrt::com_ptr<ID3D12Device1> device = nullptr;
-  WINML_EXPECT_HRESULT_SUCCEEDED(D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device1), device.put_void()));
+  WINML_EXPECT_HRESULT_SUCCEEDED(
+      D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device1), device.put_void())
+  );
   // now create a command queue from it
   winrt::com_ptr<ID3D12CommandQueue> commandQueue = nullptr;
   D3D12_COMMAND_QUEUE_DESC queueDesc = {};
   queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-  WINML_EXPECT_HRESULT_SUCCEEDED(device->CreateCommandQueue(&queueDesc, winrt::guid_of<ID3D12CommandQueue>(), commandQueue.put_void()));
+  WINML_EXPECT_HRESULT_SUCCEEDED(
+      device->CreateCommandQueue(&queueDesc, winrt::guid_of<ID3D12CommandQueue>(), commandQueue.put_void())
+  );
   // create a winml learning device based on that dx12 queue
   auto factory = winrt::get_activation_factory<LearningModelDevice, ILearningModelDeviceFactoryNative>();
   winrt::com_ptr<::IUnknown> spUnk;
@@ -1434,28 +1487,25 @@ static void D2DInterop() {
   LearningModelSession session(model, learningDevice);
   // now lets try and do some XAML/d2d on that same device, first prealloc a VideoFrame
   VideoFrame frame = VideoFrame::CreateAsDirect3D11SurfaceBacked(
-      DirectXPixelFormat::B8G8R8A8UIntNormalized,
-      224,
-      224,
-      session.Device().Direct3D11Device());
+      DirectXPixelFormat::B8G8R8A8UIntNormalized, 224, 224, session.Device().Direct3D11Device()
+  );
   // create a D2D factory
   D2D1_FACTORY_OPTIONS options = {};
   winrt::com_ptr<ID2D1Factory> d2dFactory;
-  WINML_EXPECT_HRESULT_SUCCEEDED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), &options, d2dFactory.put_void()));
+  WINML_EXPECT_HRESULT_SUCCEEDED(
+      D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), &options, d2dFactory.put_void())
+  );
   // grab the dxgi surface back from our video frame
   winrt::com_ptr<IDXGISurface> dxgiSurface;
-  winrt::com_ptr<IDirect3DDxgiInterfaceAccess> dxgiInterfaceAccess = frame.Direct3DSurface().as<IDirect3DDxgiInterfaceAccess>();
+  winrt::com_ptr<IDirect3DDxgiInterfaceAccess> dxgiInterfaceAccess =
+      frame.Direct3DSurface().as<IDirect3DDxgiInterfaceAccess>();
   WINML_EXPECT_HRESULT_SUCCEEDED(dxgiInterfaceAccess->GetInterface(__uuidof(IDXGISurface), dxgiSurface.put_void()));
   // and try and use our surface to create a render targer
   winrt::com_ptr<ID2D1RenderTarget> renderTarget;
   D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties();
-  props.pixelFormat = D2D1::PixelFormat(
-      DXGI_FORMAT_B8G8R8A8_UNORM,
-      D2D1_ALPHA_MODE_IGNORE);
-  WINML_EXPECT_HRESULT_SUCCEEDED(d2dFactory->CreateDxgiSurfaceRenderTarget(
-      dxgiSurface.get(),
-      props,
-      renderTarget.put()));
+  props.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE);
+  WINML_EXPECT_HRESULT_SUCCEEDED(d2dFactory->CreateDxgiSurfaceRenderTarget(dxgiSurface.get(), props, renderTarget.put())
+  );
 }
 
 static void BindMultipleCPUBuffersAsInputs(LearningModelDeviceKind kind) {
@@ -1525,7 +1575,7 @@ static void BindMultipleCPUBuffersAsInputs(LearningModelDeviceKind kind) {
   buffers.Append(wss::Buffer::CreateCopyFromMemoryBuffer(red));
   buffers.Append(wss::Buffer::CreateCopyFromMemoryBuffer(green));
   buffers.Append(wss::Buffer::CreateCopyFromMemoryBuffer(blue));
-  
+
   // Bind input
   binding.Bind(model.InputFeatures().First().Current().Name(), buffers);
 
@@ -1533,13 +1583,11 @@ static void BindMultipleCPUBuffersAsInputs(LearningModelDeviceKind kind) {
   auto output_descriptor = model.OutputFeatures().First().Current().as<ITensorFeatureDescriptor>();
   auto output_shape = output_descriptor.Shape();
   VideoFrame outputimage1(
-      BitmapPixelFormat::Bgra8,
-      static_cast<int32_t>(output_shape.GetAt(3)),
-      static_cast<int32_t>(output_shape.GetAt(2)));
+      BitmapPixelFormat::Bgra8, static_cast<int32_t>(output_shape.GetAt(3)), static_cast<int32_t>(output_shape.GetAt(2))
+  );
   VideoFrame outputimage2(
-      BitmapPixelFormat::Bgra8,
-      static_cast<int32_t>(output_shape.GetAt(3)),
-      static_cast<int32_t>(output_shape.GetAt(2)));
+      BitmapPixelFormat::Bgra8, static_cast<int32_t>(output_shape.GetAt(3)), static_cast<int32_t>(output_shape.GetAt(2))
+  );
 
   auto output_frames = winrt::single_threaded_vector<wm::VideoFrame>();
   output_frames.Append(outputimage1);
@@ -1561,7 +1609,8 @@ static void BindMultipleCPUBuffersAsInputs(LearningModelDeviceKind kind) {
   // check the output video frame object by saving output image to disk
   std::wstring output_filename = L"out_cpu_tensor_fish_720.jpg";
   StorageFolder current_folder = StorageFolder::GetFolderFromPathAsync(module_path).get();
-  StorageFile output_file = current_folder.CreateFileAsync(output_filename, CreationCollisionOption::ReplaceExisting).get();
+  StorageFile output_file =
+      current_folder.CreateFileAsync(output_filename, CreationCollisionOption::ReplaceExisting).get();
   IRandomAccessStream output_stream = output_file.OpenAsync(FileAccessMode::ReadWrite).get();
   BitmapEncoder encoder = BitmapEncoder::CreateAsync(BitmapEncoder::JpegEncoderId(), output_stream).get();
   // Set the software bitmap
@@ -1569,13 +1618,9 @@ static void BindMultipleCPUBuffersAsInputs(LearningModelDeviceKind kind) {
   encoder.FlushAsync().get();
 }
 
-static void BindMultipleCPUBuffersInputsOnCpu() {
-  BindMultipleCPUBuffersAsInputs(LearningModelDeviceKind::Cpu);
-}
+static void BindMultipleCPUBuffersInputsOnCpu() { BindMultipleCPUBuffersAsInputs(LearningModelDeviceKind::Cpu); }
 
-static void BindMultipleCPUBuffersInputsOnGpu() {
-  BindMultipleCPUBuffersAsInputs(LearningModelDeviceKind::DirectX);
-}
+static void BindMultipleCPUBuffersInputsOnGpu() { BindMultipleCPUBuffersAsInputs(LearningModelDeviceKind::DirectX); }
 
 static void BindMultipleCPUBuffersAsOutputs(LearningModelDeviceKind kind) {
   std::wstring modulePath = FileHelpers::GetModulePath();
@@ -1627,7 +1672,7 @@ static void BindMultipleCPUBuffersAsOutputs(LearningModelDeviceKind kind) {
   red_buffer.try_as<::Windows::Storage::Streams::IBufferByteAccess>()->Buffer(reinterpret_cast<byte**>(&red_bytes));
   green_buffer.try_as<::Windows::Storage::Streams::IBufferByteAccess>()->Buffer(reinterpret_cast<byte**>(&green_bytes));
   blue_buffer.try_as<::Windows::Storage::Streams::IBufferByteAccess>()->Buffer(reinterpret_cast<byte**>(&blue_bytes));
-  
+
   // Verify the output by comparing with the benchmark image
   SoftwareBitmap benchmark_bitmap = FileHelpers::GetSoftwareBitmapFromFile(bmImagePath);
   benchmark_bitmap = SoftwareBitmap::Convert(benchmark_bitmap, BitmapPixelFormat::Bgra8);
@@ -1638,12 +1683,12 @@ static void BindMultipleCPUBuffersAsOutputs(LearningModelDeviceKind kind) {
   wf::IMemoryBufferReference benchmark_reference = benchmark_bitmap_buffer.CreateReference();
   auto benchmark_byte_access = benchmark_reference.as<::Windows::Foundation::IMemoryBufferByteAccess>();
   benchmark_byte_access->GetBuffer(&benchmark_data, &benchmark_size);
-  
+
   // hard code, might need to be modified later.
   const float cMaxErrorRate = 0.06f;
   byte epsilon = 20;
   UINT errors = 0;
-  for (UINT32 i = 0; i < height * width; i ++) {
+  for (UINT32 i = 0; i < height * width; i++) {
     if (std::abs(red_bytes[i] - benchmark_data[i * 4]) > epsilon) {
       errors++;
     }
@@ -1655,15 +1700,16 @@ static void BindMultipleCPUBuffersAsOutputs(LearningModelDeviceKind kind) {
     }
   }
   auto total_size = height * width * 3;
-  std::cout << "total errors is " << errors << "/" << total_size << ", errors rate is " << (float)errors / total_size << "\n";
+  std::cout << "total errors is " << errors << "/" << total_size << ", errors rate is " << (float)errors / total_size
+            << "\n";
 
   WINML_EXPECT_TRUE((float)errors / total_size < cMaxErrorRate);
-
 
   // check the output video frame object by saving output image to disk
   std::wstring outputDataImageFileName = L"out_cpu_tensor_fish_720.jpg";
   StorageFolder currentfolder = StorageFolder::GetFolderFromPathAsync(modulePath).get();
-  StorageFile outimagefile = currentfolder.CreateFileAsync(outputDataImageFileName, CreationCollisionOption::ReplaceExisting).get();
+  StorageFile outimagefile =
+      currentfolder.CreateFileAsync(outputDataImageFileName, CreationCollisionOption::ReplaceExisting).get();
   IRandomAccessStream writestream = outimagefile.OpenAsync(FileAccessMode::ReadWrite).get();
   BitmapEncoder encoder = BitmapEncoder::CreateAsync(BitmapEncoder::JpegEncoderId(), writestream).get();
   // Set the software bitmap
@@ -1671,58 +1717,53 @@ static void BindMultipleCPUBuffersAsOutputs(LearningModelDeviceKind kind) {
   encoder.FlushAsync().get();
 }
 
-static void BindMultipleCPUBuffersOutputsOnCpu() {
-  BindMultipleCPUBuffersAsOutputs(LearningModelDeviceKind::Cpu);
-}
+static void BindMultipleCPUBuffersOutputsOnCpu() { BindMultipleCPUBuffersAsOutputs(LearningModelDeviceKind::Cpu); }
 
-static void BindMultipleCPUBuffersOutputsOnGpu() {
-  BindMultipleCPUBuffersAsOutputs(LearningModelDeviceKind::DirectX);
-}
+static void BindMultipleCPUBuffersOutputsOnGpu() { BindMultipleCPUBuffersAsOutputs(LearningModelDeviceKind::DirectX); }
 
 const ScenarioTestsApi& getapi() {
-  static ScenarioTestsApi api =
-      {
-          ScenarioCppWinrtTestsClassSetup,
-          Sample1,
-          Scenario1LoadBindEvalDefault,
-          Scenario2LoadModelFromStream,
-          Scenario5AsyncEval,
-          Scenario7EvalWithNoBind,
-          Scenario8SetDeviceSampleDefault,
-          Scenario8SetDeviceSampleCPU,
-          Scenario17DevDiagnostics,
-          Scenario22ImageBindingAsCPUTensor,
-          Scenario23NominalPixelRange,
-          QuantizedModels,
-          EncryptedStream,
-          Scenario3SoftwareBitmapInputBinding,
-          Scenario6BindWithProperties,
-          Scenario8SetDeviceSampleDefaultDirectX,
-          Scenario8SetDeviceSampleMinPower,
-          Scenario8SetDeviceSampleMaxPerf,
-          Scenario8SetDeviceSampleMyCameraDevice,
-          Scenario8SetDeviceSampleCustomCommandQueue,
-          Scenario9LoadBindEvalInputTensorGPU,
-          Scenario13SingleModelOnCPUandGPU,
-          Scenario11FreeDimensionsTensor,
-          Scenario11FreeDimensionsImage,
-          Scenario14RunModelSwapchain,
-          Scenario20aLoadBindEvalCustomOperatorCPU,
-          Scenario20bLoadBindEvalReplacementCustomOperatorCPU,
-          Scenario21RunModel2ChainZ,
-          Scenario22ImageBindingAsGPUTensor,
-          MsftQuantizedModels,
-          SyncVsAsync,
-          CustomCommandQueueWithFence,
-          ReuseVideoFrame,
-          DeviceLostRecovery,
-          Scenario8SetDeviceSampleD3D11Device,
-          D2DInterop,
-          BindMultipleCPUBuffersInputsOnCpu,
-          BindMultipleCPUBuffersInputsOnGpu,
-          BindMultipleCPUBuffersOutputsOnCpu,
-          BindMultipleCPUBuffersOutputsOnGpu,
-      };
+  static ScenarioTestsApi api = {
+      ScenarioCppWinrtTestsClassSetup,
+      Sample1,
+      Scenario1LoadBindEvalDefault,
+      Scenario2LoadModelFromStream,
+      Scenario5AsyncEval,
+      Scenario7EvalWithNoBind,
+      Scenario8SetDeviceSampleDefault,
+      Scenario8SetDeviceSampleCPU,
+      Scenario17DevDiagnostics,
+      Scenario22ImageBindingAsCPUTensor,
+      Scenario23NominalPixelRange,
+      QuantizedModels,
+      EncryptedStream,
+      Scenario3SoftwareBitmapInputBinding,
+      Scenario6BindWithProperties,
+      Scenario8SetDeviceSampleDefaultDirectX,
+      Scenario8SetDeviceSampleMinPower,
+      Scenario8SetDeviceSampleMaxPerf,
+      Scenario8SetDeviceSampleMyCameraDevice,
+      Scenario8SetDeviceSampleCustomCommandQueue,
+      Scenario9LoadBindEvalInputTensorGPU,
+      Scenario13SingleModelOnCPUandGPU,
+      Scenario11FreeDimensionsTensor,
+      Scenario11FreeDimensionsImage,
+      Scenario14RunModelSwapchain,
+      Scenario20aLoadBindEvalCustomOperatorCPU,
+      Scenario20bLoadBindEvalReplacementCustomOperatorCPU,
+      Scenario21RunModel2ChainZ,
+      Scenario22ImageBindingAsGPUTensor,
+      MsftQuantizedModels,
+      SyncVsAsync,
+      CustomCommandQueueWithFence,
+      ReuseVideoFrame,
+      DeviceLostRecovery,
+      Scenario8SetDeviceSampleD3D11Device,
+      D2DInterop,
+      BindMultipleCPUBuffersInputsOnCpu,
+      BindMultipleCPUBuffersInputsOnGpu,
+      BindMultipleCPUBuffersOutputsOnCpu,
+      BindMultipleCPUBuffersOutputsOnGpu,
+  };
 
   if (SkipGpuTests()) {
     api.Scenario6BindWithProperties = SkipTest;

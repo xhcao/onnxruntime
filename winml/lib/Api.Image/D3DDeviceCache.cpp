@@ -135,7 +135,8 @@ D3DDeviceCache::~D3DDeviceCache() {
   if (device_ != nullptr && (device_->GetDeviceRemovedReason() == S_OK)) {
     // dx11 stack is optional, and we lazy load it when available
     if (device_context11_ != nullptr) {
-      // Sync 11 to 12 then Sync 12 to the CPU. This ensures that all inflight work is done before we delete the d3d objects.
+      // Sync 11 to 12 then Sync 12 to the CPU. This ensures that all inflight work is done before we delete the d3d
+      // objects.
       GPUSyncD3D11ToD3D12();
     }
     SyncD3D12ToCPU();
@@ -155,9 +156,7 @@ ID3D11Device* D3DDeviceCache::GetD3D11Device() {
   return device_11_.get();
 }
 
-const GUID& D3DDeviceCache::GetFenceGuid() const {
-  return fence_guid_;
-}
+const GUID& D3DDeviceCache::GetFenceGuid() const { return fence_guid_; }
 
 ID3D11DeviceContext4* D3DDeviceCache::GetD3D11DeviceContext() {
   EnsureD3D11FromD3D12();
@@ -173,7 +172,9 @@ void D3DDeviceCache::InitializeCommandQueue(ID3D12Device1* device) {
   D3D12_COMMAND_QUEUE_DESC queueDesc = {};
   queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
   queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT;
-  WINML_THROW_IF_FAILED(device->CreateCommandQueue(&queueDesc, winrt::guid_of<ID3D12CommandQueue>(), command_queue_.put_void()));
+  WINML_THROW_IF_FAILED(
+      device->CreateCommandQueue(&queueDesc, winrt::guid_of<ID3D12CommandQueue>(), command_queue_.put_void())
+  );
 
   // If possible get the sharing context. If not leave nullptr;
   command_queue_->QueryInterface(IID_PPV_ARGS(sharing_contract_.put()));
@@ -185,18 +186,15 @@ void D3DDeviceCache::InitializeCommandQueue(ID3D12Device1* device) {
 //      winrt_device_
 void D3DDeviceCache::EnsureD3D11FromD3D12() {
   // do we even have a device?  (CPU will use the cache but not have a device) .
-  if (device_ == nullptr)
-    return;
+  if (device_ == nullptr) return;
 
   // are we already initialized
-  if (winrt_device_ != nullptr)
-    return;
+  if (winrt_device_ != nullptr) return;
 
   CWinMLAutoLock lock(&lock_);
 
   // check with the lock held, are we already initialized
-  if (winrt_device_ != nullptr)
-    return;
+  if (winrt_device_ != nullptr) return;
 
   winrt::com_ptr<::IInspectable> spInspectable;
   winrt::com_ptr<IDXGIDevice> spDXGIDevice;
@@ -210,19 +208,19 @@ void D3DDeviceCache::EnsureD3D11FromD3D12() {
   WINML_THROW_IF_FAILED(device_11_->QueryInterface(IID_PPV_ARGS(spDXGIDevice.put())));
   // Convert to Winrt wrapper. This doesn't actually make a new device.
   WINML_THROW_IF_FAILED(CreateDirect3D11DeviceFromDXGIDevice(spDXGIDevice.get(), spInspectable.put()));
-  WINML_THROW_IF_FAILED(spInspectable->QueryInterface(winrt::guid_of<wgdx::Direct3D11::IDirect3DDevice>(), reinterpret_cast<void**>(winrt::put_abi(winrt_device_))));
+  WINML_THROW_IF_FAILED(spInspectable->QueryInterface(
+      winrt::guid_of<wgdx::Direct3D11::IDirect3DDevice>(), reinterpret_cast<void**>(winrt::put_abi(winrt_device_))
+  ));
 }
 
 void D3DDeviceCache::EnsureD3D12Fence() {
   // are we already initialized?
-  if (d3d12_fence_ != nullptr)
-    return;
+  if (d3d12_fence_ != nullptr) return;
 
   CWinMLAutoLock lock(&lock_);
 
   // with the lock held, are we already initialized?
-  if (d3d12_fence_ != nullptr)
-    return;
+  if (d3d12_fence_ != nullptr) return;
 
   WINML_THROW_IF_FAILED(device_->CreateFence(0, D3D12_FENCE_FLAG_SHARED, IID_PPV_ARGS(d3d12_fence_.put())));
 }
@@ -232,14 +230,12 @@ void D3DDeviceCache::EnsureD3D12Fence() {
 //      d3d12_fence_
 void D3DDeviceCache::EnsureSharedFences() {
   // are we already initialized?
-  if (d3d11_fence_ != nullptr)
-    return;
+  if (d3d11_fence_ != nullptr) return;
 
   CWinMLAutoLock lock(&lock_);
 
   // with the lock held, are we already initialized?
-  if (d3d11_fence_ != nullptr)
-    return;
+  if (d3d11_fence_ != nullptr) return;
 
   EnsureD3D12Fence();
 
@@ -249,7 +245,8 @@ void D3DDeviceCache::EnsureSharedFences() {
   winrt::com_ptr<ID3D12DeviceChild> spD3D12DeviceChild;
   d3d12_fence_.as(spD3D12DeviceChild);
   HANDLE hSharedFence;
-  WINML_THROW_IF_FAILED(device_->CreateSharedHandle(spD3D12DeviceChild.get(), NULL, GENERIC_ALL, nullptr, &hSharedFence));
+  WINML_THROW_IF_FAILED(device_->CreateSharedHandle(spD3D12DeviceChild.get(), NULL, GENERIC_ALL, nullptr, &hSharedFence)
+  );
 
   winrt::com_ptr<ID3D11Device5> spD3D11Device5;
   device_11_.as(spD3D11Device5);
@@ -312,7 +309,8 @@ ID3D12RootSignature* D3DDeviceCache::GetTensorizeRootSignature() {
     winrt::com_ptr<ID3D12RootSignature> newRootSignature;
     D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 
-    // This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
+    // This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned
+    // will not be greater than this.
     featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
     if (FAILED(device_->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)))) {
@@ -335,15 +333,17 @@ ID3D12RootSignature* D3DDeviceCache::GetTensorizeRootSignature() {
 
       winrt::com_ptr<ID3DBlob> signature;
       winrt::com_ptr<ID3DBlob> error;
-      WINML_THROW_IF_FAILED(D3DX12SerializeVersionedRootSignature(&computeRootSignatureDesc, featureData.HighestVersion, signature.put(), error.put()));
-      WINML_THROW_IF_FAILED(device_->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(newRootSignature.put())));
+      WINML_THROW_IF_FAILED(D3DX12SerializeVersionedRootSignature(
+          &computeRootSignatureDesc, featureData.HighestVersion, signature.put(), error.put()
+      ));
+      WINML_THROW_IF_FAILED(device_->CreateRootSignature(
+          0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(newRootSignature.put())
+      ));
       newRootSignature->SetName(L"Tensorize Rootsignature");
     }
 
-    if (InterlockedCompareExchangePointer(
-            tensorize_root_signature_.put_void(),
-            newRootSignature.get(),
-            nullptr) == nullptr) {
+    if (InterlockedCompareExchangePointer(tensorize_root_signature_.put_void(), newRootSignature.get(), nullptr) ==
+        nullptr) {
       // This thread won the race and just cached the PSO
       newRootSignature.detach();
     }
@@ -357,7 +357,8 @@ ID3D12RootSignature* D3DDeviceCache::GetDetensorizeRootSignature() {
     winrt::com_ptr<ID3D12RootSignature> newRootSignature;
     D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 
-    // This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
+    // This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned
+    // will not be greater than this.
     featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
     if (FAILED(device_->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)))) {
@@ -376,19 +377,27 @@ ID3D12RootSignature* D3DDeviceCache::GetDetensorizeRootSignature() {
       rootParameters[2].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
 
       CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-      rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+      rootSignatureDesc.Init_1_1(
+          _countof(rootParameters),
+          rootParameters,
+          0,
+          nullptr,
+          D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+      );
 
       winrt::com_ptr<ID3DBlob> signature;
       winrt::com_ptr<ID3DBlob> error;
-      WINML_THROW_IF_FAILED(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, signature.put(), error.put()));
-      WINML_THROW_IF_FAILED(device_->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(newRootSignature.put())));
+      WINML_THROW_IF_FAILED(D3DX12SerializeVersionedRootSignature(
+          &rootSignatureDesc, featureData.HighestVersion, signature.put(), error.put()
+      ));
+      WINML_THROW_IF_FAILED(device_->CreateRootSignature(
+          0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(newRootSignature.put())
+      ));
       newRootSignature->SetName(L"Detensorize Rootsignature");
     }
 
-    if (InterlockedCompareExchangePointer(
-            detensorize_root_signature_.put_void(),
-            newRootSignature.get(),
-            nullptr) == nullptr) {
+    if (InterlockedCompareExchangePointer(detensorize_root_signature_.put_void(), newRootSignature.get(), nullptr) ==
+        nullptr) {
       // This thread won the race and just cached the PSO
       newRootSignature.detach();
     }
@@ -397,8 +406,14 @@ ID3D12RootSignature* D3DDeviceCache::GetDetensorizeRootSignature() {
   return detensorize_root_signature_.get();
 }
 
-ID3D12PipelineState* D3DDeviceCache::GetCachedPipelineState(PipelineStateCacheType type, PipelineStateCacheFormat formatFrom, PipelineStateCacheFormat formatTo, PipelineStateCacheOperation operation) {
-  if (cached_pipeline_state[static_cast<int>(type)][static_cast<int>(formatFrom)][static_cast<int>(formatTo)][static_cast<int>(operation)] == nullptr) {
+ID3D12PipelineState* D3DDeviceCache::GetCachedPipelineState(
+    PipelineStateCacheType type,
+    PipelineStateCacheFormat formatFrom,
+    PipelineStateCacheFormat formatTo,
+    PipelineStateCacheOperation operation
+) {
+  if (cached_pipeline_state[static_cast<int>(type)][static_cast<int>(formatFrom)][static_cast<int>(formatTo)]
+                           [static_cast<int>(operation)] == nullptr) {
     winrt::com_ptr<ID3D12PipelineState> newPSO;
     if (operation == PipelineStateCacheOperation::kTensorize) {
       newPSO.attach(CreateTensorizePipelineState(type, formatFrom, formatTo));
@@ -407,19 +422,29 @@ ID3D12PipelineState* D3DDeviceCache::GetCachedPipelineState(PipelineStateCacheTy
     }
 
     if (InterlockedCompareExchangePointer(
-            cached_pipeline_state[static_cast<int>(type)][static_cast<int>(formatFrom)][static_cast<int>(formatTo)][static_cast<int>(operation)].put_void(),
+            cached_pipeline_state[static_cast<int>(type)][static_cast<int>(formatFrom)][static_cast<int>(formatTo)]
+                                 [static_cast<int>(operation)]
+                                     .put_void(),
             newPSO.get(),
-            nullptr) == nullptr) {
+            nullptr
+        ) == nullptr) {
       // This thread won the race and just cached the PSO
       newPSO.detach();
     }
   }
 
-  return cached_pipeline_state[static_cast<int>(type)][static_cast<int>(formatFrom)][static_cast<int>(formatTo)][static_cast<int>(operation)].get();
+  return cached_pipeline_state[static_cast<int>(type)][static_cast<int>(formatFrom)][static_cast<int>(formatTo)]
+                              [static_cast<int>(operation)]
+                                  .get();
 }
 
-ID3D12PipelineState* D3DDeviceCache::CreateTensorizePipelineState(PipelineStateCacheType type, PipelineStateCacheFormat formatFrom, PipelineStateCacheFormat formatTo) {
-  static_assert(static_cast<unsigned int>(PipelineStateCacheFormat::kCount) == 3, "PipelineStateCacheFormat changed, update D3DDeviceCache::CreateTensorizePipelineState()");
+ID3D12PipelineState* D3DDeviceCache::CreateTensorizePipelineState(
+    PipelineStateCacheType type, PipelineStateCacheFormat formatFrom, PipelineStateCacheFormat formatTo
+) {
+  static_assert(
+      static_cast<unsigned int>(PipelineStateCacheFormat::kCount) == 3,
+      "PipelineStateCacheFormat changed, update D3DDeviceCache::CreateTensorizePipelineState()"
+  );
 
   const BYTE* shaderBytecode = nullptr;
   uint64_t shaderBytecodeSize = 0;
@@ -495,8 +520,13 @@ ID3D12PipelineState* D3DDeviceCache::CreateTensorizePipelineState(PipelineStateC
   return pipelineState.detach();
 }
 
-ID3D12PipelineState* D3DDeviceCache::CreateDetensorizePipelineState(PipelineStateCacheType type, PipelineStateCacheFormat formatFrom, PipelineStateCacheFormat formatTo) {
-  static_assert(static_cast<unsigned int>(PipelineStateCacheFormat::kCount) == 3, "PipelineStateCacheFormat changed, update D3DDeviceCache::CreateDetensorizePipelineState()");
+ID3D12PipelineState* D3DDeviceCache::CreateDetensorizePipelineState(
+    PipelineStateCacheType type, PipelineStateCacheFormat formatFrom, PipelineStateCacheFormat formatTo
+) {
+  static_assert(
+      static_cast<unsigned int>(PipelineStateCacheFormat::kCount) == 3,
+      "PipelineStateCacheFormat changed, update D3DDeviceCache::CreateDetensorizePipelineState()"
+  );
 
   const BYTE* shaderBytecode = nullptr;
   uint64_t shaderBytecodeSize = 0;
@@ -593,13 +623,12 @@ ID3D12Resource* D3DDeviceCache::GetDetensorizeVertexBuffer(_Out_ UINT* vertexBuf
     winrt::com_ptr<ID3D12Resource> newResource;
     // Create the vertex buffer.
     // 2 triangles for full screen
-    DirectX::XMFLOAT3 triangleVertices[] =
-        {
-            {-1.0f, 1.0f, 0.0f},
-            {1.0f, 1.0f, 0.0f},
-            {-1.0f, -1.0f, 0.0f},
-            {1.0f, -1.0f, 0.0f},
-        };
+    DirectX::XMFLOAT3 triangleVertices[] = {
+        {-1.0f, 1.0f, 0.0f},
+        {1.0f, 1.0f, 0.0f},
+        {-1.0f, -1.0f, 0.0f},
+        {1.0f, -1.0f, 0.0f},
+    };
 
     assert(sc_vertexBufferSize == sizeof(triangleVertices));
 
@@ -611,7 +640,8 @@ ID3D12Resource* D3DDeviceCache::GetDetensorizeVertexBuffer(_Out_ UINT* vertexBuf
         &resourceDiscription,
         D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr,
-        IID_PPV_ARGS(newResource.put())));
+        IID_PPV_ARGS(newResource.put())
+    ));
 
     // Copy the triangle data to the vertex buffer.
     UINT8* pVertexDataBegin;
@@ -620,10 +650,8 @@ ID3D12Resource* D3DDeviceCache::GetDetensorizeVertexBuffer(_Out_ UINT* vertexBuf
     memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
     newResource->Unmap(0, nullptr);
 
-    if (InterlockedCompareExchangePointer(
-            detensorize_vertex_buffer_.put_void(),
-            newResource.get(),
-            nullptr) == nullptr) {
+    if (InterlockedCompareExchangePointer(detensorize_vertex_buffer_.put_void(), newResource.get(), nullptr) ==
+        nullptr) {
       // This thread won the race and just cached the PSO
       newResource.detach();
     }
@@ -636,10 +664,14 @@ ID3D12Resource* D3DDeviceCache::GetDetensorizeVertexBuffer(_Out_ UINT* vertexBuf
 HANDLE D3DDeviceCache::GetConverterFenceHandle() {
   // Lazily create the fence since we may never need to use it
   if (!converter_fence_) {
-    WINML_THROW_IF_FAILED(device_->CreateFence(0, D3D12_FENCE_FLAG_SHARED | D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER, IID_PPV_ARGS(converter_fence_.put())));
+    WINML_THROW_IF_FAILED(device_->CreateFence(
+        0, D3D12_FENCE_FLAG_SHARED | D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER, IID_PPV_ARGS(converter_fence_.put())
+    ));
 
     HANDLE hSharedFence;
-    WINML_THROW_IF_FAILED(device_->CreateSharedHandle(converter_fence_.get(), nullptr, GENERIC_ALL, nullptr, &hSharedFence));
+    WINML_THROW_IF_FAILED(
+        device_->CreateSharedHandle(converter_fence_.get(), nullptr, GENERIC_ALL, nullptr, &hSharedFence)
+    );
 
     converter_fence_handle_ = wil::unique_handle(hSharedFence);
   }
@@ -683,6 +715,4 @@ void D3DDeviceCache::SyncD3D11DeviceToConverter(_In_ ID3D11Fence* pD3D11Fence) {
   WINML_THROW_IF_FAILED(command_queue_->Wait(converter_fence_.get(), newfenceValue));
 }
 
-bool D3DDeviceCache::SharedHandleInitialized() {
-  return d3d11_fence_ != nullptr;
-}
+bool D3DDeviceCache::SharedHandleInitialized() { return d3d11_fence_ != nullptr; }

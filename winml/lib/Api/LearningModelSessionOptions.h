@@ -7,7 +7,10 @@
 #include <thread>
 namespace WINMLP {
 
-struct LearningModelSessionOptions : LearningModelSessionOptionsT<LearningModelSessionOptions, ILearningModelSessionOptionsNative, ILearningModelSessionOptionsNative1> {
+struct LearningModelSessionOptions : LearningModelSessionOptionsT<
+                                         LearningModelSessionOptions,
+                                         ILearningModelSessionOptionsNative,
+                                         ILearningModelSessionOptionsNative1> {
   LearningModelSessionOptions() = default;
 
   LearningModelSessionOptions(const LearningModelSessionOptions& options);
@@ -31,13 +34,9 @@ struct LearningModelSessionOptions : LearningModelSessionOptionsT<LearningModelS
 
   bool GetIntraOpThreadSpinning();
 
-  const gsl::span<const winrt::hstring>
-  GetCustomOpLibraryPaths() noexcept;
+  const gsl::span<const winrt::hstring> GetCustomOpLibraryPaths() noexcept;
 
-  void
-  RegisterCustomOpsLibrary(
-    const winrt::hstring& path
-  ) noexcept;
+  void RegisterCustomOpsLibrary(const winrt::hstring& path) noexcept;
 
  private:
   // The batch size override property is used to inform the engine when the developer
@@ -70,9 +69,10 @@ struct LearningModelSessionOptions : LearningModelSessionOptionsT<LearningModelS
   // 1...n: override the named input dimension to the given value and optimize evaluations.
   wfc::IMap<winrt::hstring, uint32_t> named_dim_overrides_ = winrt::single_threaded_map<winrt::hstring, uint32_t>();
 
-  // The intra operator num threads property is used to control the number of threads used in the threadpool for intra operator calculations.
-  // The default value here is the maximum number of logical cores to ensure that the default behavior of WinML always runs the fastest.
-  // WARNING: Setting a number higher than the maximum number of logical cores may result in an inefficient threadpool
+  // The intra operator num threads property is used to control the number of threads used in the threadpool for intra
+  // operator calculations. The default value here is the maximum number of logical cores to ensure that the default
+  // behavior of WinML always runs the fastest. WARNING: Setting a number higher than the maximum number of logical
+  // cores may result in an inefficient threadpool
   uint32_t intra_op_num_threads_override_ = std::thread::hardware_concurrency();
 
   bool allow_thread_spinning_ = true;
@@ -83,6 +83,6 @@ struct LearningModelSessionOptions : LearningModelSessionOptionsT<LearningModelS
 }  // namespace WINMLP
 
 namespace WINML::factory_implementation {
-struct LearningModelSessionOptions : LearningModelSessionOptionsT<LearningModelSessionOptions, implementation::LearningModelSessionOptions> {
-};
+struct LearningModelSessionOptions
+    : LearningModelSessionOptionsT<LearningModelSessionOptions, implementation::LearningModelSessionOptions> {};
 }  // namespace WINML::factory_implementation

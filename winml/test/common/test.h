@@ -10,16 +10,14 @@ using SetupTest = VoidTest;
 using TeardownTest = VoidTest;
 
 #pragma warning(push)
-#pragma warning(disable:4505)  // unreferenced local function has been removed
+#pragma warning(disable : 4505)  // unreferenced local function has been removed
 
-constexpr bool alwaysTrue() {
-    return true;
-}
-constexpr bool alwaysFalse() {
-    return false;
-}
-#define WINML_SUPRESS_UNREACHABLE_BELOW(statement)    \
-    if (alwaysTrue()) { statement; }
+constexpr bool alwaysTrue() { return true; }
+constexpr bool alwaysFalse() { return false; }
+#define WINML_SUPRESS_UNREACHABLE_BELOW(statement) \
+  if (alwaysTrue()) {                              \
+    statement;                                     \
+  }
 
 #ifdef BUILD_TAEF_TEST
 #include "taefTestMacros.h"
@@ -27,8 +25,6 @@ constexpr bool alwaysFalse() {
 #include "googleTestMacros.h"
 #endif
 
-static void SkipTest() {
-  WINML_SKIP_TEST("");
-}
+static void SkipTest() { WINML_SKIP_TEST(""); }
 
 #pragma warning(pop)
