@@ -21,7 +21,6 @@ endif()
 set(ONNXRUNTIME_PUBLIC_HEADERS
   "${REPO_ROOT}/include/onnxruntime/core/session/onnxruntime_c_api.h"
   "${REPO_ROOT}/include/onnxruntime/core/session/onnxruntime_cxx_api.h"
-  "${REPO_ROOT}/include/onnxruntime/core/session/onnxruntime_float16.h"
   "${REPO_ROOT}/include/onnxruntime/core/session/onnxruntime_cxx_inline.h"
   "${REPO_ROOT}/include/onnxruntime/core/session/onnxruntime_session_options_config_keys.h"
   "${REPO_ROOT}/include/onnxruntime/core/session/onnxruntime_run_options_config_keys.h"
@@ -39,7 +38,6 @@ macro(get_mobile_api_headers _HEADERS)
   set(${_HEADERS}
     "${REPO_ROOT}/include/onnxruntime/core/session/onnxruntime_c_api.h"
     "${REPO_ROOT}/include/onnxruntime/core/session/onnxruntime_cxx_api.h"
-    "${REPO_ROOT}/include/onnxruntime/core/session/onnxruntime_float16.h"
     "${REPO_ROOT}/include/onnxruntime/core/session/onnxruntime_cxx_inline.h"
   )
 
