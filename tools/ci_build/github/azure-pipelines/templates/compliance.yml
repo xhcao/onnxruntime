@@ -32,7 +32,7 @@ steps:
      **/*.pdb
      **/*.dll
 #Manually set msBuildCommandline so that we can also set CAExcludePath
-- task: securedevelopmentteam.vss-secure-development-tools.build-task-prefast.SDLNativeRules@2
+- task: SDLNativeRules@3
   displayName: 'Run the PREfast SDL Native Rules for MSBuild'
   inputs:
     userProvideBuildInfo: msBuildInfo
