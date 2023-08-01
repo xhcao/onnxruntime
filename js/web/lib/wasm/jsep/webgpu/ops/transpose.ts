@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import {DataType} from '../../../wasm-common';
+import {DataType, tensorDataTypeToWgslType} from '../../../wasm-common';
 import {TensorView} from '../../tensor';
 import {ShapeUtil} from '../../util';
 import {AttributeWithCacheKey, createAttributeWithCacheKey} from '../attribute-with-cache-key';
@@ -23,8 +23,8 @@ const validateInputs = (inputs: readonly TensorView[]): void => {
     throw new Error('Transpose requires 1 input.');
   }
 
-  if (inputs[0].dataType !== DataType.float) {
-    throw new Error('input should be float tensor');
+  if (inputs[0].dataType !== DataType.float && inputs[0].dataType !== DataType.int32) {
+    throw new Error('input should be float or int32 tensor');
   }
 };
 
@@ -45,7 +45,7 @@ const permFunctionBody = (perm: number[], rank: number): string => {
 };
 
 export const createTransposeProgramInfo = (input: TensorView, permAttr: number[]): ProgramInfo => {
-  const dataType = 'f32';  // TODO: support other data type
+  const dataType = tensorDataTypeToWgslType(input.dataType);
   const inputShape = input.dims;
   const perm = getAdjustedPerm(inputShape, permAttr);
   const outputShape = getOutputShape(inputShape, perm);

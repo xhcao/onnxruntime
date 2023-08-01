@@ -1358,7 +1358,8 @@
       "sqrt.jsonc",
       "sub.jsonc",
       "tan.jsonc",
-      "transpose.jsonc"
+      "transpose.jsonc",
+      "transpose_int32.jsonc"
       //"xor.jsonc"
     ]
   },

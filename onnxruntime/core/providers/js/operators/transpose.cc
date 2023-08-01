@@ -6,23 +6,31 @@
 namespace onnxruntime {
 namespace js {
 
-ONNX_OPERATOR_VERSIONED_KERNEL_EX(
-    Transpose,
-    kOnnxDomain,
-    1, 12,
-    kJsExecutionProvider,
-    (*KernelDefBuilder::Create())
-        .TypeConstraint("T", DataTypeImpl::GetTensorType<float>()),
-    Transpose);
+#define REG_ELEMENTWISE_TYPED_KERNEL(OP_TYPE, VERSION, TYPE, KERNEL_CLASS)         \
+  ONNX_OPERATOR_TYPED_KERNEL_EX(                                                   \
+      OP_TYPE,                                                                     \
+      kOnnxDomain,                                                                 \
+      VERSION,                                                                     \
+      TYPE,                                                                        \
+      kJsExecutionProvider,                                                        \
+      KernelDefBuilder().TypeConstraint("T", DataTypeImpl::GetTensorType<TYPE>()), \
+      KERNEL_CLASS);
 
-ONNX_OPERATOR_KERNEL_EX(
-    Transpose,
-    kOnnxDomain,
-    13,
-    kJsExecutionProvider,
-    (*KernelDefBuilder::Create())
-        .TypeConstraint("T", DataTypeImpl::GetTensorType<float>()),
-    Transpose);
+#define REG_ELEMENTWISE_VERSIONED_TYPED_KERNEL(OP_TYPE, VERSION_FROM, VERSION_TO, TYPE, KERNEL_CLASS) \
+  ONNX_OPERATOR_VERSIONED_TYPED_KERNEL_EX(                                                            \
+      OP_TYPE,                                                                                        \
+      kOnnxDomain,                                                                                    \
+      VERSION_FROM, VERSION_TO,                                                                       \
+      TYPE,                                                                                           \
+      kJsExecutionProvider,                                                                           \
+      KernelDefBuilder().TypeConstraint("T", DataTypeImpl::GetTensorType<TYPE>()),                    \
+      KERNEL_CLASS);
+
+REG_ELEMENTWISE_VERSIONED_TYPED_KERNEL(Transpose, 1, 12, float, Transpose);
+REG_ELEMENTWISE_TYPED_KERNEL(Transpose, 13, float, Transpose);
+
+REG_ELEMENTWISE_VERSIONED_TYPED_KERNEL(Transpose, 1, 12, int32_t, Transpose);
+REG_ELEMENTWISE_TYPED_KERNEL(Transpose, 13, int32_t, Transpose);
 
 }  // namespace js
 }  // namespace onnxruntime
