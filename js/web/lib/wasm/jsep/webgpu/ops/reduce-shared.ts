@@ -8,7 +8,6 @@ import {AttributeWithCacheKey, createAttributeWithCacheKey} from '../attribute-w
 import {ComputeContext, GpuDataType, ProgramInfo, ProgramInfoLoader, ProgramMetadata} from '../types';
 
 import {inputVariable, outputVariable, ShaderHelper} from './common';
-import {reduceL1Naive, reduceL2Naive, reduceLogSumExpNaive, reduceLogSumNaive, reduceMaxNaive, reduceMeanNaive, reduceMinNaive, reduceProdNaive, reduceSumNaive, reduceSumSquareNaive} from './reduce';
 import {createTransposeProgramInfo, TransposeAttributes, transposeProgramMetadata} from './transpose';
 
 export interface ReduceAttributes extends AttributeWithCacheKey {
@@ -68,15 +67,15 @@ const reduceOutputValues: {[key: string]: string} = {
   logSum: 'log(bestValue)'
 };
 
-function getInnerMostAxes(numAxes: number, rank: number): number[] {
-  const res: number[] = [];
-  for (let i = rank - numAxes; i < rank; ++i) {
+const getInnerMostAxes = (numInnerAxes: number, rank: number): number[] => {
+  const res = [];
+  for (let i = rank - numInnerAxes; i < rank; ++i) {
     res.push(i);
   }
   return res;
-}
+};
 
-function computeOutAndReduceShapes(shape: readonly number[], axes: readonly number[]): [number[], number[]] {
+const computeOutAndReduceShapes = (shape: readonly number[], axes: readonly number[]): [number[], number[]] => {
   const outputShape = [];
   const rank = shape.length;
   for (let dim = 0; dim < rank; dim++) {
@@ -86,68 +85,44 @@ function computeOutAndReduceShapes(shape: readonly number[], axes: readonly numb
   }
   const reduceShape = axes.map(dim => shape[dim]);
   return [outputShape, reduceShape];
-}
+};
 
-function combineLocations(outputLoc: number[], reduceLoc: number[], axes: number[]): number[] {
-  const rank = outputLoc.length + reduceLoc.length;
-  const loc = [];
-  let outIdx = 0;
-  let reduceIdx = 0;
-    for (let dim = 0; dim < rank; dim++) {
+const expandShapeToKeepDim = (shape: number[], axes: number[]): number[] => {
+  const rank = shape.length + axes.length;
+  const expandShape = [];
+  let shapeIdx = 0;
+  for (let dim = 0; dim < rank; dim++) {
     if (axes.indexOf(dim) === -1) {
-      loc.push(outputLoc[outIdx++]);
+      expandShape.push(shape[shapeIdx++]);
     } else {
-      loc.push(reduceLoc[reduceIdx++]);
+      expandShape.push(1);
     }
   }
-  return loc;
-}
+  return expandShape;
+};
 
-function expandShapeToKeepDim(shape: number[], axes: number[]): number[] {
-  const reduceSubShape = axes.map(x => 1);
-  return combineLocations(shape, reduceSubShape, axes);
-}
-
-function axesAreInnerMostDims(axes: number[], rank: number): boolean {
+const areAxesInnerMostDims = (axes: number[], rank: number): boolean => {
   for (let i = 0; i < axes.length; ++i) {
     if (axes[axes.length - i - 1] !== rank - 1 - i) {
       return false;
     }
   }
   return true;
-}
+};
 
-function getAxesPermutation(axes: number[], rank: number): number[]|null {
-  if (axesAreInnerMostDims(axes, rank)) {
+const getAxesPermutation = (axes: number[], rank: number): number[]|null => {
+  if (areAxesInnerMostDims(axes, rank)) {
     return null;
   }
-  const result: number[] = [];
+  const res = [];
   for (let i = 0; i < rank; ++i) {
     if (axes.indexOf(i) === -1) {
-      result.push(i);
+      res.push(i);
     }
   }
-  axes.forEach(axis => result.push(axis));
-  return result;
-}
-
-function useNaiveReduceMethod(shape: readonly number[], axes: readonly number[], noopWithEmptyAxes: boolean): boolean {
-  if (axes.length === 0) {
-    return noopWithEmptyAxes ? true : false;
-  }
-
-  let outputSize = 1;
-  let reduceSize = 1;
-  for (let dim = 0; dim < axes.length; dim++) {
-    if (axes.indexOf(dim) === -1) {
-      outputSize *= shape[dim];
-    } else {
-      reduceSize *= shape[dim];
-    }
-  }
-
-  return reduceSize < 32 && outputSize > 1024 ? true : false;
-}
+  axes.forEach(axis => res.push(axis));
+  return res;
+};
 
 export const createReduceProgramInfo =
     (metadata: ProgramMetadata, inputs: readonly TensorView[], reduceType: string, outputDataType: DataType,
@@ -213,6 +188,7 @@ export const createReduceProgramInfo =
          }
         }`;
 
+      // One work group is responsible for only one element of output.
       return {
         ...metadata,
         getShaderSource,
@@ -284,65 +260,42 @@ const reduceCommon =
           {inputs: [input]});
     };
 
-export const reduceMean = (context: ComputeContext, attributes: ReduceAttributes): void => {
-  useNaiveReduceMethod(context.inputs[0].dims, attributes.axes, attributes.noopWithEmptyAxes) ?
-      reduceMeanNaive(context, attributes) :
-      reduceCommon(context, 'ReduceMean', attributes, 'mean');
+export const reduceMeanShared = (context: ComputeContext, attributes: ReduceAttributes): void => {
+  reduceCommon(context, 'ReduceMean', attributes, 'mean');
 };
 
-export const reduceL1 = (context: ComputeContext, attributes: ReduceAttributes): void => {
-  useNaiveReduceMethod(context.inputs[0].dims, attributes.axes, attributes.noopWithEmptyAxes) ?
-      reduceL1Naive(context, attributes) :
-      reduceCommon(context, 'ReduceL1', attributes, 'l1');
+export const reduceL1Shared = (context: ComputeContext, attributes: ReduceAttributes): void => {
+  reduceCommon(context, 'ReduceL1', attributes, 'l1');
 };
 
-export const reduceL2 = (context: ComputeContext, attributes: ReduceAttributes): void => {
-  useNaiveReduceMethod(context.inputs[0].dims, attributes.axes, attributes.noopWithEmptyAxes) ?
-      reduceL2Naive(context, attributes) :
-      reduceCommon(context, 'ReduceL2', attributes, 'l2');
+export const reduceL2Shared = (context: ComputeContext, attributes: ReduceAttributes): void => {
+  reduceCommon(context, 'ReduceL2', attributes, 'l2');
 };
 
-export const reduceLogSumExp = (context: ComputeContext, attributes: ReduceAttributes): void => {
-  useNaiveReduceMethod(context.inputs[0].dims, attributes.axes, attributes.noopWithEmptyAxes) ?
-      reduceLogSumExpNaive(context, attributes) :
-      reduceCommon(context, 'ReduceLogSumExp', attributes, 'logSumExp');
+export const reduceLogSumExpShared = (context: ComputeContext, attributes: ReduceAttributes): void => {
+  reduceCommon(context, 'ReduceLogSumExp', attributes, 'logSumExp');
 };
 
-export const reduceMax = (context: ComputeContext, attributes: ReduceAttributes): void => {
-  useNaiveReduceMethod(context.inputs[0].dims, attributes.axes, attributes.noopWithEmptyAxes) ?
-      reduceMaxNaive(context, attributes) :
-      reduceCommon(context, 'ReduceMax', attributes, 'max');
+export const reduceMaxShared = (context: ComputeContext, attributes: ReduceAttributes): void => {
+  reduceCommon(context, 'ReduceMax', attributes, 'max');
 };
 
-export const reduceMin = (context: ComputeContext, attributes: ReduceAttributes): void => {
-  useNaiveReduceMethod(context.inputs[0].dims, attributes.axes, attributes.noopWithEmptyAxes) ?
-      reduceMinNaive(context, attributes) :
-      reduceCommon(context, 'ReduceMin', attributes, 'min');
+export const reduceMinShared = (context: ComputeContext, attributes: ReduceAttributes): void => {
+  reduceCommon(context, 'ReduceMin', attributes, 'min');
 };
 
-export const reduceProd = (context: ComputeContext, attributes: ReduceAttributes): void => {
-  useNaiveReduceMethod(context.inputs[0].dims, attributes.axes, attributes.noopWithEmptyAxes) ?
-      reduceProdNaive(context, attributes) :
-      reduceCommon(context, 'ReduceProd', attributes, 'prod');
+export const reduceProdShared = (context: ComputeContext, attributes: ReduceAttributes): void => {
+  reduceCommon(context, 'ReduceProd', attributes, 'prod');
 };
 
-export const reduceSum = (context: ComputeContext, attributes: ReduceAttributes): void => {
-  useNaiveReduceMethod(context.inputs[0].dims, attributes.axes, attributes.noopWithEmptyAxes) ?
-      reduceSumNaive(context, attributes) :
-      reduceCommon(context, 'ReduceSum', attributes, 'sum');
+export const reduceSumShared = (context: ComputeContext, attributes: ReduceAttributes): void => {
+  reduceCommon(context, 'ReduceSum', attributes, 'sum');
 };
 
-export const reduceSumSquare = (context: ComputeContext, attributes: ReduceAttributes): void => {
-  useNaiveReduceMethod(context.inputs[0].dims, attributes.axes, attributes.noopWithEmptyAxes) ?
-      reduceSumSquareNaive(context, attributes) :
-      reduceCommon(context, 'ReduceSumSquare', attributes, 'sumSquare');
+export const reduceSumSquareShared = (context: ComputeContext, attributes: ReduceAttributes): void => {
+  reduceCommon(context, 'ReduceSumSquare', attributes, 'sumSquare');
 };
 
-export const reduceLogSum = (context: ComputeContext, attributes: ReduceAttributes): void => {
-  useNaiveReduceMethod(context.inputs[0].dims, attributes.axes, attributes.noopWithEmptyAxes) ?
-      reduceLogSumNaive(context, attributes) :
-      reduceCommon(context, 'ReduceLogSum', attributes, 'logSum');
+export const reduceLogSumShared = (context: ComputeContext, attributes: ReduceAttributes): void => {
+  reduceCommon(context, 'ReduceLogSum', attributes, 'logSum');
 };
-
-export const parseReduceAttributes = (attributes: Record<string, unknown>): ReduceAttributes =>
-    createAttributeWithCacheKey(attributes as Omit<ReduceAttributes, keyof AttributeWithCacheKey>);
