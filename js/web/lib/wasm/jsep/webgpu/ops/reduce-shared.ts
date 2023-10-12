@@ -4,17 +4,11 @@
 import {DataType} from '../../../wasm-common';
 import {TensorView} from '../../tensor-view';
 import {ShapeUtil} from '../../util';
-import {AttributeWithCacheKey, createAttributeWithCacheKey} from '../attribute-with-cache-key';
-import {ComputeContext, GpuDataType, ProgramInfo, ProgramInfoLoader, ProgramMetadata} from '../types';
+import {ComputeContext, ProgramInfo, ProgramShaderCacheInfo} from '../types';
 
 import {inputVariable, outputVariable, ShaderHelper} from './common';
-import {createTransposeProgramInfo, TransposeAttributes, transposeProgramMetadata} from './transpose';
-
-export interface ReduceAttributes extends AttributeWithCacheKey {
-  keepDims: boolean;
-  noopWithEmptyAxes: boolean;
-  axes: number[];
-}
+import {createReduceAttributesFromInputs, ReduceAttributes} from './reduce';
+import {createTransposeProgramInfo} from './transpose';
 
 const reduceOps: {[key: string]: string} = {
   max: 'select(bestValue, candidate, candidate > bestValue)',
@@ -110,23 +104,22 @@ const areAxesInnerMostDims = (axes: number[], rank: number): boolean => {
   return true;
 };
 
-const getAxesPermutation = (axes: number[], rank: number): number[]|null => {
-  if (areAxesInnerMostDims(axes, rank)) {
-    return null;
-  }
+const getAxesPermutation = (axes: number[], rank: number): number[] => {
   const res = [];
-  for (let i = 0; i < rank; ++i) {
-    if (axes.indexOf(i) === -1) {
-      res.push(i);
+  if (!areAxesInnerMostDims(axes, rank)) {
+    for (let i = 0; i < rank; ++i) {
+      if (axes.indexOf(i) === -1) {
+        res.push(i);
+      }
     }
+    axes.forEach(axis => res.push(axis));
   }
-  axes.forEach(axis => res.push(axis));
   return res;
 };
 
-export const createReduceProgramInfo =
-    (metadata: ProgramMetadata, inputs: readonly TensorView[], reduceType: string, outputDataType: DataType,
-     outputShape: number[], reduceShape: number[]): ProgramInfo => {
+export const createReduceSharedProgramInfo =
+    (name: string, shaderCache: ProgramShaderCacheInfo, inputs: readonly TensorView[], reduceType: string,
+     outputDataType: DataType, outputShape: number[], reduceShape: number[]): ProgramInfo => {
       const inputShape = inputs[0].dims;
 
       const outputSize = ShapeUtil.size(outputShape);
@@ -190,35 +183,11 @@ export const createReduceProgramInfo =
 
       // One work group is responsible for only one element of output.
       return {
-        ...metadata,
-        getShaderSource,
-        outputs: [{dims: outputShape, dataType: outputDataType, gpuDataType: GpuDataType.default}],
-        dispatchGroup: () => ({x: Math.ceil(outputSize)})
-      };
-    };
-
-const createReduceAttributesFromInputs =
-    (inputs: readonly TensorView[], attributes: ReduceAttributes): ReduceAttributes => {
-      const axes: number[] = [];
-      if (inputs[1].dims[0] > 0) {
-        inputs[1].getBigInt64Array().forEach(v => axes.push(Number(v)));
-      }
-      return createAttributeWithCacheKey(
-          {axes, keepDims: attributes.keepDims, noopWithEmptyAxes: attributes.noopWithEmptyAxes});
-    };
-
-const createReduceProgramInfoLoader =
-    (inputs: readonly TensorView[], name: string, attributes: ReduceAttributes, reduceType: string,
-     resOutShape: number[], reduceShape: number[]): ProgramInfoLoader => {
-      const metadata: ProgramMetadata = {
         name,
-        inputTypes: [GpuDataType.default],
-        cacheHint: attributes.cacheKey + '_' + inputs[0].dims.map(d => d.toString()).join(',')
-      };
-      return {
-        ...metadata,
-        get: () =>
-            createReduceProgramInfo(metadata, [inputs[0]], reduceType, inputs[0].dataType, resOutShape, reduceShape)
+        shaderCache,
+        getShaderSource,
+        getRunData: () =>
+            ({outputs: [{dims: outputShape, dataType: outputDataType}], dispatchGroup: {x: Math.ceil(outputSize)}}),
       };
     };
 
@@ -237,14 +206,9 @@ const reduceCommon =
       let axes = normalizeAxes;
       let input = context.inputs[0];
       const permutedAxes = getAxesPermutation(axes, context.inputs[0].dims.length);
-      if (permutedAxes != null) {
-        const inputTransposeAttribute: TransposeAttributes = createAttributeWithCacheKey({perm: permutedAxes});
+      if (permutedAxes.length > 0) {
         input = context.compute(
-            {
-              ...transposeProgramMetadata,
-              cacheHint: inputTransposeAttribute.cacheKey,
-              get: () => createTransposeProgramInfo(context.inputs[0], inputTransposeAttribute.perm)
-            },
+            createTransposeProgramInfo(context.inputs[0].dataType, context.inputs[0].dims.length, permutedAxes),
             {inputs: [0], outputs: [-2]})[0];
         axes = getInnerMostAxes(axes.length, input.dims.length);
       }
@@ -256,7 +220,9 @@ const reduceCommon =
       }
 
       context.compute(
-          createReduceProgramInfoLoader([input], name, updatedAttributes, reduceType, finalOutputShape, reduceShape),
+          createReduceSharedProgramInfo(
+              name, {hint: updatedAttributes.cacheKey}, [input], reduceType, context.inputs[0].dataType,
+              finalOutputShape, reduceShape),
           {inputs: [input]});
     };
 
