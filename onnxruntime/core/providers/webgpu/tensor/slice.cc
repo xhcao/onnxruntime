@@ -111,13 +111,34 @@ Status Slice::ComputeInternal(ComputeContext& context) const {
   const Tensor* input_tensor = context.Input(0);
   const TensorShape& input_shape = input_tensor->Shape();
   auto input_rank = input_shape.NumDimensions();
-
-  auto starts_raw = attr_starts_.empty() ? getInt64Input(context.Input(1)) : attr_starts_;
-  auto ends_raw = attr_ends_.empty() ? getInt64Input(context.Input(2)) : attr_ends_;
-
-  ORT_ENFORCE(starts_raw.size() == ends_raw.size(), "starts and ends must have the same size");
-
   int input_count = context.InputCount();
+
+  const Tensor* starts_tensor = input_count > 1 ? context.Input(1) : nullptr;
+  const auto size = starts_tensor != nullptr ? narrow<size_t>(starts_tensor->Shape().Size()) : 0;
+  TensorShapeVector input_starts;
+  TensorShapeVector input_ends;
+  TensorShapeVector input_axes;
+  TensorShapeVector input_steps;
+
+  bool is_starts_int64 = starts_tensor != nullptr ? starts_tensor->DataType() == DataTypeImpl::GetType<int64_t>() : false;
+  if (starts_tensor != nullptr) {
+    input_starts.reserve(size);
+    input_ends.reserve(size);
+    if (is_starts_int64) {
+      auto start_data = starts_tensor->DataAsSpan<int64_t>();
+      std::copy(start_data.begin(), start_data.end(), std::back_inserter(input_starts));
+      auto end_data = context.Input(2)->DataAsSpan<int64_t>();
+      std::copy(end_data.begin(), end_data.end(), std::back_inserter(input_ends));
+    } else {
+      auto start_data = starts_tensor->DataAsSpan<int32_t>();
+      std::copy(start_data.begin(), start_data.end(), std::back_inserter(input_starts));
+      auto end_data = context.Input(2)->DataAsSpan<int32_t>();
+      std::copy(end_data.begin(), end_data.end(), std::back_inserter(input_ends));
+    }
+  }
+  auto starts_raw = input_count > 1 ? input_starts : gsl::make_span(attr_starts_);
+  auto ends_raw = input_count > 1 ? input_ends : gsl::make_span(attr_ends_);
+  ORT_ENFORCE(starts_raw.size() == ends_raw.size(), "starts and ends must have the same size");
 
   const Tensor* axes_tensor = nullptr;
   const Tensor* steps_tensor = nullptr;
@@ -139,8 +160,17 @@ Status Slice::ComputeInternal(ComputeContext& context) const {
     for (size_t i = 0; i < starts_raw.size(); i++) {
       axes_default.push_back(i);
     }
+  } else {
+    input_axes.reserve(size);
+    if (is_starts_int64) {
+      auto axes_data = axes_tensor->DataAsSpan<int64_t>();
+      std::copy(axes_data.begin(), axes_data.end(), std::back_inserter(input_axes));
+    } else {
+      auto axes_data = axes_tensor->DataAsSpan<int32_t>();
+      std::copy(axes_data.begin(), axes_data.end(), std::back_inserter(input_axes));
+    }
   }
-  auto axes_raw = attr_axes_.empty() ? (axes_tensor == nullptr ? axes_default : getInt64Input(axes_tensor)) : attr_axes_;
+  auto axes_raw = attr_axes_.empty() ? (axes_tensor == nullptr ? gsl::make_span(axes_default) : input_axes) : gsl::make_span(attr_axes_);
 
   std::vector<int64_t> steps_default;
   if (steps_tensor == nullptr) {
@@ -148,8 +178,17 @@ Status Slice::ComputeInternal(ComputeContext& context) const {
     for (size_t i = 0; i < starts_raw.size(); i++) {
       steps_default.push_back(1);
     }
+  } else {
+    input_steps.reserve(size);
+    if (is_starts_int64) {
+      auto steps_data = steps_tensor->DataAsSpan<int64_t>();
+      std::copy(steps_data.begin(), steps_data.end(), std::back_inserter(input_steps));
+    } else {
+      auto steps_data = steps_tensor->DataAsSpan<int32_t>();
+      std::copy(steps_data.begin(), steps_data.end(), std::back_inserter(input_steps));
+    }
   }
-  auto steps_raw = steps_tensor == nullptr ? steps_default : getInt64Input(steps_tensor);
+  auto steps_raw = steps_tensor == nullptr ? gsl::make_span(steps_default) : input_steps;
 
   // get final axes
   std::vector<uint32_t> axes, axes_fixed;
